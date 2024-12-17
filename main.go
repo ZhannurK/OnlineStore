@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"programming/db"
 )
 
 type Response struct {
@@ -17,6 +19,8 @@ type Request struct {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	fmt.Println("Request recieved")
 
 	if r.Method == http.MethodPost {
 		var req Request
@@ -39,6 +43,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", handler)
+	fmt.Println("Server is running on port 8080...")
+	http.ListenAndServe(":8080", nil)
+
+	// Подключение к MongoDB
+	err := db.ConnectMongoDB()
+	if err != nil {
+		log.Fatal("Failed to connect to MongoDB:", err)
+	}
+	defer db.DisconnectMongoDB()
+
+	// Роуты
+	http.HandleFunc("/create", db.CreateUserHandler)
+
 	fmt.Println("Server is running on port 8080...")
 	http.ListenAndServe(":8080", nil)
 }

@@ -14,10 +14,13 @@ func ConnectMongoDB() error {
 	defer cancel()
 
 	var err error
-	client, err = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:8080"))
 	return err
 }
 
 func DisconnectMongoDB() {
-	client.Disconnect(context.Background())
+	err := client.Disconnect(context.Background())
+	if err != nil {
+		return
+	}
 }
