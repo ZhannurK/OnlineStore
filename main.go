@@ -18,8 +18,6 @@ type Request struct {
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	fmt.Println("Request recieved")
-
 	if r.Method == http.MethodPost {
 		var req Request
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Message == "" {

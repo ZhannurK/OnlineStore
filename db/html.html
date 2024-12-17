@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Store</title>
+    <script>
+        async function sendPostRequest() {
+            const response = await fetch("http://localhost:8080", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: "Hello, Server!" }),
+            });
+            const data = await response.json();
+            alert(JSON.stringify(data));
+        }
+
+        async function sendGetRequest() {
+            const response = await fetch("http://localhost:8080");
+            const data = await response.json();
+            alert(JSON.stringify(data));
+        }
+    </script>
+</head>
+<body>
+<h1>Online Store</h1>
+<button onclick="sendPostRequest()">Send POST Request</button>
+<button onclick="sendGetRequest()">Send GET Request</button>
+</body>
+</html>
