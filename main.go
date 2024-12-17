@@ -42,20 +42,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", handler)
-	fmt.Println("Server is running on port 8080...")
-	http.ListenAndServe(":8080", nil)
-
-	// Подключение к MongoDB
+	// Connect to MongoDB
 	err := db.ConnectMongoDB()
 	if err != nil {
 		log.Fatal("Failed to connect to MongoDB:", err)
 	}
 	defer db.DisconnectMongoDB()
 
-	// Роуты
+	// Set up routes
+	http.HandleFunc("/", handler)
 	http.HandleFunc("/create", db.CreateUserHandler)
 
+	// Start the server
 	fmt.Println("Server is running on port 8080...")
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

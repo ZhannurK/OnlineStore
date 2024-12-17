@@ -24,7 +24,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collection := client.Database("online_store").Collection("users")
+	collection := client.Database("db").Collection("user")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
