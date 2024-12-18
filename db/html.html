@@ -3,28 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Store</title>
+    <title> User </title>
     <script>
-        async function sendPostRequest() {
-            const response = await fetch("http://localhost:8080", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: "Hello, Server!" }),
-            });
-            const data = await response.json();
-            alert(JSON.stringify(data));
+        const API_BASE = "http://localhost:8080";
+
+        async function createUser() {
+            const name = document.getElementById("createName").value;
+            const email = document.getElementById("createEmail").value;
+
+            try {
+                const response = await fetch(`${API_BASE}/create`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email }),
+                });
+
+                const data = await response.json();
+                alert("Create Response: " + JSON.stringify(data));
+                document.getElementById("createForm").reset();
+            } catch (error) {
+                alert("Error creating user: " + error.message);
+            }
         }
 
-        async function sendGetRequest() {
-            const response = await fetch("http://localhost:8080");
-            const data = await response.json();
-            alert(JSON.stringify(data));
+        async function getUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                const data = await response.json();
+                const output = document.getElementById("output");
+                output.innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                alert("Error fetching users: " + error.message);
+            }
+        }
+
+        async function updateUser() {
+            const filterName = document.getElementById("updateFilterName").value;
+            const filterEmail = document.getElementById("updateFilterEmail").value;
+            const newName = document.getElementById("updateName").value;
+            const newEmail = document.getElementById("updateEmail").value;
+
+            try {
+                const response = await fetch(`${API_BASE}/users/update`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: filterName, email: filterEmail, update: { name: newName, email: newEmail } }),
+                });
+
+                const data = await response.json();
+                alert("Update Response: " + JSON.stringify(data));
+                document.getElementById("updateForm").reset();
+            } catch (error) {
+                alert("Error updating user: " + error.message);
+            }
+        }
+
+        async function deleteUser() {
+            const name = document.getElementById("deleteName").value;
+            const email = document.getElementById("deleteEmail").value;
+
+            try {
+                const response = await fetch(`${API_BASE}/users/delete`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email }),
+                });
+
+                const data = await response.json();
+                alert("Delete Response: " + JSON.stringify(data));
+                document.getElementById("deleteForm").reset();
+            } catch (error) {
+                alert("Error deleting user: " + error.message);
+            }
         }
     </script>
 </head>
 <body>
-<h1>Online Store</h1>
-<button onclick="sendPostRequest()">Send POST Request</button>
-<button onclick="sendGetRequest()">Send GET Request</button>
+<h1>CRUD Operations</h1>
+
+<section>
+    <h3>Create User</h3>
+    <form id="createForm" onsubmit="event.preventDefault(); createUser();">
+        <label>
+            Name: <input type="text" id="createName" placeholder="Enter name" required>
+        </label><br>
+        <label>
+            Email: <input type="email" id="createEmail" placeholder="Enter email" required>
+        </label><br>
+        <button type="submit">Create User</button>
+    </form>
+</section>
+<hr>
+
+<section>
+    <h3>View All Users</h3>
+    <button onclick="getUsers()">Get All Users</button>
+    <pre id="output" style="background-color: #f9f9f9; padding: 10px; border: 1px solid #ccc;"></pre>
+</section>
+<hr>
+
+<section>
+    <h3>Update User</h3>
+    <form id="updateForm" onsubmit="event.preventDefault(); updateUser();">
+        <label>
+            Current Name: <input type="text" id="updateFilterName" placeholder="Current name" required>
+        </label><br>
+        <label>
+            Current Email: <input type="email" id="updateFilterEmail" placeholder="Current email" required>
+        </label><br>
+        <label>
+            New Name: <input type="text" id="updateName" placeholder="New name">
+        </label><br>
+        <label>
+            New Email: <input type="email" id="updateEmail" placeholder="New email">
+        </label><br>
+        <button type="submit">Update User</button>
+    </form>
+</section>
+<hr>
+
+<section>
+    <h3>Delete User</h3>
+    <form id="deleteForm" onsubmit="event.preventDefault(); deleteUser();">
+        <label>
+            Name: <input type="text" id="deleteName" placeholder="Enter name" required>
+        </label><br>
+        <label>
+            Email: <input type="email" id="deleteEmail" placeholder="Enter email" required>
+        </label><br>
+        <button type="submit">Delete User</button>
+    </form>
+</section>
 </body>
 </html>

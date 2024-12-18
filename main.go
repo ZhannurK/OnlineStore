@@ -13,22 +13,24 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-type Request struct {
-	Message string `json:"message"`
-}
-
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	fmt.Println("Request recieved")
+	fmt.Println("Request received")
 
 	if r.Method == http.MethodPost {
-		var req Request
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Message == "" {
-			json.NewEncoder(w).Encode(Response{"fail", "Invalid JSON message"})
+		var req struct {
+			Name  string `json:"name"`
+			Email string `json:"email"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Name == "" || req.Email == "" {
+			json.NewEncoder(w).Encode(Response{"fail", "Invalid JSON message. 'name' and 'email' are required."})
 			return
 		}
-		fmt.Println("Received message:", req.Message)
+
+		fmt.Printf("Received Name: %s, Email: %s\n", req.Name, req.Email)
+
+		// Success response
 		json.NewEncoder(w).Encode(Response{"success", "Data successfully received"})
 		return
 	}
@@ -42,18 +44,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Connect to MongoDB
 	err := db.ConnectMongoDB()
 	if err != nil {
 		log.Fatal("Failed to connect to MongoDB:", err)
 	}
 	defer db.DisconnectMongoDB()
 
-	// Set up routes
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/create", db.CreateUserHandler)
+	http.HandleFunc("/users", db.GetAllUsersHandler)
+	http.HandleFunc("/users/update", db.UpdateUserHandler)
+	http.HandleFunc("/users/delete", db.DeleteUserHandler)
 
-	// Start the server
 	fmt.Println("Server is running on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
