@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	"programming/db"
 )
 
@@ -22,15 +23,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Name  string `json:"name"`
 			Email string `json:"email"`
+			ID    string `json:"id"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Name == "" || req.Email == "" {
-			json.NewEncoder(w).Encode(Response{"fail", "Invalid JSON message. 'name' and 'email' are required."})
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			json.NewEncoder(w).Encode(Response{"fail", "Invalid JSON format"})
+			return
+		}
+
+		if req.Name == "" || req.Email == "" {
+			json.NewEncoder(w).Encode(Response{"fail", "Missing required fields: 'name' and 'email'"})
 			return
 		}
 
 		fmt.Printf("Received Name: %s, Email: %s\n", req.Name, req.Email)
 
-		// Success response
 		json.NewEncoder(w).Encode(Response{"success", "Data successfully received"})
 		return
 	}
@@ -57,5 +63,8 @@ func main() {
 	http.HandleFunc("/users/delete", db.DeleteUserHandler)
 
 	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	err = http.ListenAndServe(":8080", http.DefaultServeMux)
+	if err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
 }

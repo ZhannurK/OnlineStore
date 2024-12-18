@@ -26,8 +26,8 @@ func ConnectMongoDB() error {
 	userCollection = client.Database("db").Collection("users")
 
 	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{Key: "email", Value: 1}}, // Creates an ascending index on "email"
-		Options: options.Index().SetUnique(true),  // Ensures uniqueness
+		Keys:    bson.D{{Key: "email", Value: 1}},
+		Options: options.Index().SetUnique(true),
 	}
 
 	if _, err := userCollection.Indexes().CreateOne(ctx, indexModel); err != nil {

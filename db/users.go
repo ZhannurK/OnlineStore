@@ -12,6 +12,7 @@ import (
 type User struct {
 	Name  string `json:"name" bson:"name"`
 	Email string `json:"email" bson:"email"`
+	ID    string `json:"id" bson:"id"`
 }
 
 func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +39,6 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully"})
 }
 
-// GetAllUsersHandler retrieves all users
 func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -64,7 +64,6 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
-// UpdateUserHandler updates a user by name and email
 func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -92,7 +91,6 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "User updated successfully"})
 }
 
-// DeleteUserHandler deletes a user by name and email
 func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
