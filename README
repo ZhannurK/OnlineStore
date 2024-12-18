@@ -1,0 +1,19 @@
+a. Online store
+b. Our project is an online store designed for sneaker enthusiasts,
+offering a platform to explore, purchase, and manage sneaker collections.
+The project demonstrates an e-commerce system with JSON-based server interactions and
+a connected PostgreSQL database for product and user data management.
+c. Zhannur Kainedin
+Adil Bolatov
+Daniil Chushkin
+d. «СКРИНШОТ ГЛАВНОЙ СТРАНИЦЫ»
+e. «ПОШАГОВАЯ ИНСТРУКЦИЯ КАК ЗАПУСТИТЬ два АШ ПРОЕКТ»
+f. Tools and Resources: 
+Programming Languages:
+1)Golang: Backend server and JSON handling
+2)HTML, CSS: Frontend interface
+Libraries and Frameworks:
+1) Gorm: ORM for Golang
+2) Golang-migrate: For managing database migrations
+Testing Tools:
+Postman: For sending HTTP requests
