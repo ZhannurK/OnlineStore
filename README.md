@@ -21,9 +21,9 @@ Help small businesses keep track of products effectively.
 ## Team Members
 | Name   | Role               |
 |--------|--------------------|
-| Daniil | Team Lead, Backend Developer |
-| Zhannur| Backend Developer  |
-| Adil   | Frontend Developer |
+| Daniil | Super Duper Ultra Team Lead |
+| Zhannur| Gachi master Developer  |
+| Adil   | Awesome Developer  |
 
 ## Screenshot of Main Page
 (Add an actual screenshot of the main webpage in the assets folder.)
