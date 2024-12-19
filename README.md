@@ -1,6 +1,5 @@
-### SneakersStore
 ## Project Name
-SneakersStore
+### Sneakers Store
 
 ## Project Description
 SneakersStore is a simple yet effective web application designed to streamline team management and collaboration. It enables users to perform full CRUD operations (Create, Read, Update, Delete) on product and inventory data, such as sneaker models, prices, and stock, through an intuitive interface.
