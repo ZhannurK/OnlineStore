@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -23,6 +24,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Name == "" || user.Email == "" {
+		fmt.Println("Error decoding JSON:", err)
 		http.Error(w, "Invalid JSON input", http.StatusBadRequest)
 		return
 	}
@@ -51,6 +53,7 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 	cursor, err := userCollection.Find(ctx, bson.M{})
 	if err != nil {
 		http.Error(w, "Failed to fetch users", http.StatusInternalServerError)
+		fmt.Println("Error fetching users:", err)
 		return
 	}
 	defer cursor.Close(ctx)
@@ -72,6 +75,7 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Name == "" || user.Email == "" {
+		fmt.Println("Error input JSON:", err)
 		http.Error(w, "Invalid JSON input", http.StatusBadRequest)
 		return
 	}
@@ -99,6 +103,7 @@ func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Name == "" || user.Email == "" {
+		fmt.Println("Error deleting:", err)
 		http.Error(w, "Invalid JSON input", http.StatusBadRequest)
 		return
 	}

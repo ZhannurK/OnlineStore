@@ -26,6 +26,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			ID    string `json:"id"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			fmt.Println("Error decoding JSON:", err)
 			json.NewEncoder(w).Encode(Response{"fail", "Invalid JSON format"})
 			return
 		}
