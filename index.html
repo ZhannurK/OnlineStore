@@ -10,12 +10,13 @@
         async function createUser() {
             const name = document.getElementById("createName").value;
             const email = document.getElementById("createEmail").value;
+            const id = document.getElementById("createID").value;
 
             try {
-                const response = await fetch(`${API_BASE}/create`, {
+                const response = await fetch(`${API_BASE}/users/create`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name, email }),
+                    body: JSON.stringify({ name, email, id}),
                 });
 
                 const data = await response.json();
@@ -40,14 +41,16 @@
         async function updateUser() {
             const filterName = document.getElementById("updateFilterName").value;
             const filterEmail = document.getElementById("updateFilterEmail").value;
+            const id = document.getElementById("updateID").value;
             const newName = document.getElementById("updateName").value;
             const newEmail = document.getElementById("updateEmail").value;
+            const newid = document.getElementById("updateNewID").value;
 
             try {
                 const response = await fetch(`${API_BASE}/users/update`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name: filterName, email: filterEmail, update: { name: newName, email: newEmail } }),
+                    body: JSON.stringify({ name: filterName, email: filterEmail, id: id, update: { name: newName, email: newEmail, id: newid } }),
                 });
 
                 const data = await response.json();
@@ -61,12 +64,13 @@
         async function deleteUser() {
             const name = document.getElementById("deleteName").value;
             const email = document.getElementById("deleteEmail").value;
+            const id = document.getElementById("deleteID").value;
 
             try {
                 const response = await fetch(`${API_BASE}/users/delete`, {
                     method: "DELETE",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name, email }),
+                    body: JSON.stringify({ name, email, id}),
                 });
 
                 const data = await response.json();
@@ -90,6 +94,9 @@
         <label>
             Email: <input type="email" id="createEmail" placeholder="Enter email" required>
         </label><br>
+        <label>
+            ID: <input type="text" id="createID" placeholder="Enter email" required>
+        </label><br>
         <button type="submit">Create User</button>
     </form>
 </section>
@@ -112,10 +119,16 @@
             Current Email: <input type="email" id="updateFilterEmail" placeholder="Current email" required>
         </label><br>
         <label>
+            Current ID: <input type="text" id="updateID" placeholder="Current ID" required>
+        </label><br>
+        <label>
             New Name: <input type="text" id="updateName" placeholder="New name">
         </label><br>
         <label>
             New Email: <input type="email" id="updateEmail" placeholder="New email">
+        </label><br>
+        <label>
+            New ID: <input type="text" id="updateNewID" placeholder="Current email" required>
         </label><br>
         <button type="submit">Update User</button>
     </form>
@@ -130,6 +143,9 @@
         </label><br>
         <label>
             Email: <input type="email" id="deleteEmail" placeholder="Enter email" required>
+        </label><br>
+        <label>
+            Name: <input type="text" id="deleteID" placeholder="Enter name" required>
         </label><br>
         <button type="submit">Delete User</button>
     </form>

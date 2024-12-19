@@ -50,6 +50,21 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Response{"fail", "Method not allowed"})
 }
 
+func createHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		db.CreateUserHandler(w, r)
+		return
+	}
+	if r.Method == http.MethodGet {
+		createGetHandler(w, r)
+		return
+	}
+}
+
+func createGetHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "index.html")
+}
+
 func main() {
 	err := db.ConnectMongoDB()
 	if err != nil {
@@ -58,7 +73,8 @@ func main() {
 	defer db.DisconnectMongoDB()
 
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/create", db.CreateUserHandler)
+	//http.HandleFunc("/create", db.CreateUserHandler)
+	http.HandleFunc("/users/create", createHandler)
 	http.HandleFunc("/users", db.GetAllUsersHandler)
 	http.HandleFunc("/users/update", db.UpdateUserHandler)
 	http.HandleFunc("/users/delete", db.DeleteUserHandler)
@@ -69,3 +85,5 @@ func main() {
 		log.Fatal("Failed to start server:", err)
 	}
 }
+
+//http://localhost:8080/users/create
