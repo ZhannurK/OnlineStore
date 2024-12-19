@@ -75,12 +75,10 @@ sneakers-store/
 │   ├── main.go             # Main server file
 │   ├── db/
 │   │   ├── mongo.go        # MongoDB connection
-│   │   ├── crud.go         # CRUD operations
+│   │   ├── users.go         # CRUD operations
 │   └── go.mod              # Go module dependencies
 ├── frontend/
-│   ├── crud.html           # Main frontend file
-│   ├── assets/
-│   │   └── screenshot.png  # Main page screenshot
+│   ├── index.html           # Main frontend file
 ├── README.md               # Project documentation
 ```
 
