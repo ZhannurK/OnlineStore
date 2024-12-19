@@ -17,10 +17,10 @@ Small businesses managing product inventories.
 Developers learning CRUD operations and full-stack development.
 Teams seeking a simple product management tool.
 **Team Members
-Name Role
-Daniil Team Lead, Backend Developer
-Zhannur Backend Developer
-Adil Frontend Developer
+Name	Role
+Daniil	Team Lead, Backend Developer
+Zhannur	Backend Developer
+Adil	Frontend Developer
 **Screenshot of Main Page
 (Add an actual screenshot of the main webpage in the assets folder.)
 
@@ -53,12 +53,12 @@ cd frontend
 python3 -m http.server 8000
 Open your browser and visit: http://localhost:8000.
 **Tools and Technologies Used
-Tool Purpose
+Tool	Purpose
 Golang - Backend server
-MongoDB - Database for storing user data
-HTML/CSS/JS - Frontend for user interaction
-Postman - API testing
-GitHub - Version control and hosting
+MongoDB	- Database for storing user data
+HTML/CSS/JS	- Frontend for user interaction
+Postman	- API testing
+GitHub	- Version control and hosting
 **Repository Structure
 sneakers-store/
 ├── backend/
@@ -78,3 +78,4 @@ This project is publicly available at:
 
 **Thank You for Checking Out Our Project!
 Feel free to reach out or open an issue if you encounter any problems or want to contribute. Let's make inventory management better together!
+
