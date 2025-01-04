@@ -11,7 +11,7 @@ import (
 )
 
 type User struct {
-	Name  string `json:"name" bson:"name"`
+	Name  string `json:"name" bson:"name" required:"true"`
 	Email string `json:"email" bson:"email"`
 	ID    string `json:"id" bson:"id"`
 }
@@ -33,11 +33,14 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Request received")
+	fmt.Println("Request received create")
 
 	var user User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Name == "" || user.Email == "" {
-		fmt.Println("Error decoding JSON:", err)
+
+	err2 := json.NewDecoder(r.Body).Decode(&user)
+
+	if err2 != nil {
+		fmt.Println("Error decoding JSON: ", err2.Error())
 		http.Error(w, "Invalid JSON input", http.StatusBadRequest)
 		return
 	}
@@ -45,8 +48,9 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := userCollection.InsertOne(ctx, user)
+	_, err := userCollection.InsertOne(ctx, bson.D{{"id", user.ID}, {"name", user.Name}, {"email", user.Email}})
 	if err != nil {
+		fmt.Println("Error inserting user:", err)
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
@@ -62,9 +66,24 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Request received")
 
+	// ✅ Extract the 'id' query parameter
+	id := r.URL.Query().Get("id")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	if id != "" {
+		// ✅ Search by ID if 'id' is provided
+		var user User
+		err := userCollection.FindOne(ctx, bson.M{"id": id}).Decode(&user)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(user)
+		return
+	}
+
+	// ✅ If no ID is provided, return all users
 	cursor, err := userCollection.Find(ctx, bson.M{})
 	if err != nil {
 		http.Error(w, "Failed to fetch users", http.StatusInternalServerError)

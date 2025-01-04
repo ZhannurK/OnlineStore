@@ -38,6 +38,23 @@
             }
         }
 
+        async function searchUserByID() {
+            const id = document.getElementById("searchID").value;
+
+            try {
+                const response = await fetch(`${API_BASE}/users?id=${id}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById("searchOutput").innerText = JSON.stringify(data, null, 2);
+                } else {
+                    alert("User not found");
+                }
+            } catch (error) {
+                alert("Error searching user by ID: " + error.message);
+            }
+        }
+
         async function updateUser() {
             const filterName = document.getElementById("updateFilterName").value;
             const filterEmail = document.getElementById("updateFilterEmail").value;
@@ -107,6 +124,18 @@
     <button onclick="getUsers()">Get All Users</button>
     <pre id="output" style="background-color: #f9f9f9; padding: 10px; border: 1px solid #ccc;"></pre>
 </section>
+
+<section>
+    <h3>Search User by ID</h3>
+    <form id="searchForm" onsubmit="event.preventDefault(); searchUserByID();">
+        <label>
+            ID: <input type="text" id="searchID" placeholder="Enter user ID" required>
+        </label><br>
+        <button type="submit">Search User</button>
+    </form>
+    <pre id="searchOutput" style="background-color: #f9f9f9; padding: 10px; border: 1px solid #ccc;"></pre>
+</section>
+
 <hr>
 
 <section>
