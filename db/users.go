@@ -66,13 +66,11 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Request received")
 
-	// ✅ Extract the 'id' query parameter
 	id := r.URL.Query().Get("id")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if id != "" {
-		// ✅ Search by ID if 'id' is provided
 		var user User
 		err := userCollection.FindOne(ctx, bson.M{"id": id}).Decode(&user)
 		if err != nil {
@@ -83,7 +81,6 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ✅ If no ID is provided, return all users
 	cursor, err := userCollection.Find(ctx, bson.M{})
 	if err != nil {
 		http.Error(w, "Failed to fetch users", http.StatusInternalServerError)
