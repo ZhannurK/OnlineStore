@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SignIn</title>
+  <title>Sign Up</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap');
 
@@ -14,6 +14,7 @@
       box-sizing: border-box;
       font-family: 'Poppins', sans-serif;
     }
+
     body {
       display: flex;
       justify-content: center;
@@ -21,18 +22,20 @@
       min-height: 100vh;
       background: #1f1f1f;
     }
-    .login-box {
+
+    .signup-box {
       display: flex;
       justify-content: center;
       flex-direction: column;
       width: 440px;
-      height: 480px;
+      height: 560px;
       padding: 30px;
       background: lightgrey;
       border-radius: 15px;
       box-shadow: 0 5px 53px 38px rgba(245, 245, 245, 0.26);
       position: relative;
     }
+
     .close-btn {
       position: absolute;
       top: 20px;
@@ -42,18 +45,22 @@
       cursor: pointer;
       text-decoration: none;
     }
+
     .close-btn:hover {
       color: #ff4e5b;
     }
-    .login-header {
+
+    .signup-header {
       text-align: center;
       margin: 20px 0 40px 0;
     }
-    .login-header header {
+
+    .signup-header header {
       color: #333;
       font-size: 30px;
       font-weight: 600;
     }
+
     .input-box .input-field {
       width: 100%;
       height: 60px;
@@ -65,39 +72,20 @@
       outline: none;
       transition: .3s;
     }
+
     ::placeholder {
       font-weight: 500;
       color: #222;
     }
+
     .input-field:focus {
       width: 105%;
     }
-    .forgot {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 40px;
-    }
-    section {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-      color: #555;
-    }
-    #check {
-      margin-right: 10px;
-    }
-    a {
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    section a {
-      color: #555;
-    }
+
     .input-submit {
       position: relative;
     }
+
     .submit-btn {
       width: 100%;
       height: 60px;
@@ -107,6 +95,7 @@
       cursor: pointer;
       transition: .3s;
     }
+
     .input-submit label {
       position: absolute;
       top: 45%;
@@ -115,45 +104,49 @@
       transform: translate(-50%, -50%);
       cursor: pointer;
     }
+
     .submit-btn:hover {
       background: #000;
       transform: scale(1.05, 1);
     }
-    .sign-up-link {
+
+    .sign-in-link {
       text-align: center;
       font-size: 15px;
       margin-top: 20px;
     }
-    .sign-up-link a {
+
+    .sign-in-link a {
       color: #000;
       font-weight: 600;
+    }
+
+    .sign-in-link a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <div class="login-box">
+  <div class="signup-box">
     <a href="store.html" class="close-btn">&times;</a>
-    <div class="login-header">
-      <header>Login</header>
+    <div class="signup-header">
+      <header>Sign Up</header>
     </div>
     <div class="input-box">
-      <input type="text" class="input-field" placeholder="Email" autocomplete="off" required="">
+      <input type="text" class="input-field" placeholder="Name" autocomplete="off" required="">
+    </div>
+    <div class="input-box">
+      <input type="email" class="input-field" placeholder="Email" autocomplete="off" required="">
     </div>
     <div class="input-box">
       <input type="password" class="input-field" placeholder="Password" autocomplete="off" required="">
     </div>
-    <div class="forgot">
-      <section>
-        <input type="checkbox" id="check">
-        <label for="check">Remember me</label>
-      </section>
-    </div>
     <div class="input-submit">
       <button class="submit-btn" id="submit"></button>
-      <label for="submit">Sign In</label>
+      <label for="submit">Sign Up</label>
     </div>
-    <div class="sign-up-link">
-      <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+    <div class="sign-in-link">
+      <p>Already have an account? <a href="authorization.html">Sign In</a></p>
     </div>
   </div>
 </body>
