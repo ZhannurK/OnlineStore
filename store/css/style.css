@@ -1,17 +1,5 @@
-/*--------------------------------------------------------------------- File Name: style.css ---------------------------------------------------------------------*/
-
-
-/*--------------------------------------------------------------------- import Fonts ---------------------------------------------------------------------*/
-
 @import url('https://fonts.googleapis.com/css?family=Rajdhani:300,400,500,600,700');
 @import url('https://fonts.googleapis.com/css?family=Poppins:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i');
-
-/*****---------------------------------------- 1) font-family: 'Rajdhani', sans-serif;
- 2) font-family: 'Poppins', sans-serif;
- ----------------------------------------*****/
-
-
-/*--------------------------------------------------------------------- import Files ---------------------------------------------------------------------*/
 
 @import url(animate.min.css);
 @import url(normalize.css);
@@ -20,8 +8,6 @@
 @import url(slick.css);
 @import url(jquery-ui.css);
 @import url(nice-select.css);
-
-/*--------------------------------------------------------------------- skeleton ---------------------------------------------------------------------*/
 
 * {
      box-sizing: border-box !important;
@@ -323,9 +309,6 @@ body{
 .slide-wrapper{display:inline;}
 .slide-wrapper .container{padding:0;}
 
-
-/*------------------------------ vertical bootstrap slider----------------------------*/
-
 .carousel-inner> .carousel-item.carousel-item-next ,
 .carousel-inner > .carousel-item.active.carousel-item-right{ 
     transform: translate3d(0, 100%, 0); -webkit-transform: translate3d(0, 100%, 0); -ms-transform: translate3d(0, 100%, 0); -moz-transform: translate3d(0, 100%, 0); -o-transform: translate3d(0, 100%, 0);  top: 0;
@@ -343,7 +326,6 @@ body{
     
 }
 
-/*------------------------------- vertical carousel indicators ------------------------------*/
 .carousel-indicators{
     position:absolute;
     top:0;
