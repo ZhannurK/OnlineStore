@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -20,7 +23,7 @@ import (
 var (
 	db      *mongo.Client
 	logger  = logrus.New()
-	limiter = rate.NewLimiter(1, 3)
+	limiter = rate.NewLimiter(50, 50)
 )
 
 type User struct {
@@ -51,6 +54,18 @@ func init() {
 
 func main() {
 	r := mux.NewRouter()
+
+	r.HandleFunc("/sneakers", getSneakers).Methods(http.MethodGet)
+	r.HandleFunc("/shoes", func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, "./store/shoes.html")
+	}).Methods(http.MethodGet)
+
+	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, "./store/store.html")
+	}).Methods(http.MethodGet)
+
+	r.PathPrefix("/public").Handler(http.FileServer(http.Dir("./store")))
+
 	r.HandleFunc("/users", getUsers).Methods(http.MethodGet)
 	r.HandleFunc("/login", login).Methods(http.MethodPost)
 	r.HandleFunc("/signup", signup).Methods(http.MethodPost)
@@ -213,4 +228,33 @@ func handleError(w http.ResponseWriter, statusCode int, message string, err erro
 	w.WriteHeader(statusCode)
 	response := map[string]string{"error": message}
 	json.NewEncoder(w).Encode(response)
+}
+
+func getSneakers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	collection := db.Database("OnlineStore").Collection("sneakers")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := collection.Find(ctx, bson.M{}) // Получаем все документы из коллекции
+	if err != nil {
+		http.Error(w, "Error fetching sneakers", http.StatusInternalServerError)
+		log.Println("Error fetching sneakers:", err)
+		return
+	}
+	defer cursor.Close(ctx)
+
+	var sneakers []bson.M
+	if err = cursor.All(ctx, &sneakers); err != nil {
+		http.Error(w, "Error parsing sneakers", http.StatusInternalServerError)
+		log.Println("Error parsing sneakers:", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(sneakers) // Возвращаем данные в формате JSON
 }

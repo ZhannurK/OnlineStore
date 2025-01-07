@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"programming/db"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Response struct {
@@ -65,6 +69,35 @@ func createGetHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "index.html")
 }
 
+func getSneakers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	collection := client.Database("OnlineStore").Collection("sneakers")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := collection.Find(ctx, bson.M{}) // Получаем все документы из коллекции
+	if err != nil {
+		http.Error(w, "Error fetching sneakers", http.StatusInternalServerError)
+		log.Println("Error fetching sneakers:", err)
+		return
+	}
+	defer cursor.Close(ctx)
+
+	var sneakers []bson.M
+	if err = cursor.All(ctx, &sneakers); err != nil {
+		http.Error(w, "Error parsing sneakers", http.StatusInternalServerError)
+		log.Println("Error parsing sneakers:", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(sneakers) // Возвращаем данные в формате JSON
+}
+
 func main() {
 	err := db.ConnectMongoDB()
 	if err != nil {
@@ -72,18 +105,19 @@ func main() {
 	}
 	defer db.DisconnectMongoDB()
 
-	http.HandleFunc("/", handler)
-	//http.HandleFunc("/create", db.CreateUserHandler)
-	http.HandleFunc("/users/create", createHandler)
-	http.HandleFunc("/users", db.GetAllUsersHandler)
-	http.HandleFunc("/users/update", db.UpdateUserHandler)
-	http.HandleFunc("/users/delete", db.DeleteUserHandler)
+	// Отдача статических файлов
+	fs := http.FileServer(http.Dir("./"))
+	http.Handle("/", fs)
+
+	// API маршруты
+	http.HandleFunc("/sneakers", getSneakers)
 
 	fmt.Println("Server is running on port 8080...")
-	err = http.ListenAndServe(":8080", http.DefaultServeMux)
+	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
 
+//http://localhost:8080/sneakers
 //http://localhost:8080/users/create

@@ -1,5 +1,17 @@
+/*--------------------------------------------------------------------- File Name: style.css ---------------------------------------------------------------------*/
+
+
+/*--------------------------------------------------------------------- import Fonts ---------------------------------------------------------------------*/
+
 @import url('https://fonts.googleapis.com/css?family=Rajdhani:300,400,500,600,700');
 @import url('https://fonts.googleapis.com/css?family=Poppins:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i');
+
+/*****---------------------------------------- 1) font-family: 'Rajdhani', sans-serif;
+ 2) font-family: 'Poppins', sans-serif;
+ ----------------------------------------*****/
+
+
+/*--------------------------------------------------------------------- import Files ---------------------------------------------------------------------*/
 
 @import url(animate.min.css);
 @import url(normalize.css);
@@ -8,6 +20,8 @@
 @import url(slick.css);
 @import url(jquery-ui.css);
 @import url(nice-select.css);
+
+/*--------------------------------------------------------------------- skeleton ---------------------------------------------------------------------*/
 
 * {
      box-sizing: border-box !important;
@@ -300,7 +314,78 @@ body{
     width:100%;
     height:100%;
 }
+.carousel-inner,.carousel,.carousel-item,.container,.fill {
+    height:100%;
+    width:100%;
+    background-position:center center;
+    background-size:cover;
+}
+.slide-wrapper{display:inline;}
+.slide-wrapper .container{padding:0;}
 
+
+/*------------------------------ vertical bootstrap slider----------------------------*/
+
+.carousel-inner> .carousel-item.carousel-item-next ,
+.carousel-inner > .carousel-item.active.carousel-item-right{ 
+    transform: translate3d(0, 100%, 0); -webkit-transform: translate3d(0, 100%, 0); -ms-transform: translate3d(0, 100%, 0); -moz-transform: translate3d(0, 100%, 0); -o-transform: translate3d(0, 100%, 0);  top: 0;
+    
+}
+.carousel-inner > .carousel-item.carousel-item-prev ,
+.carousel-inner > .carousel-item.active.carousel-item-left{ 
+    transform: translate3d(0,-100%, 0); -webkit-transform: translate3d(0,-100%, 0);  -moz-transform: translate3d(0,-100%, 0);-ms-transform: translate3d(0,-100%, 0); -o-transform: translate3d(0,-100%, 0); top: 0;
+    
+}
+.carousel-inner > .carousel-item.next.carousel-item-left ,
+.carousel-inner > .carousel-item.carousel-item-prev.carousel-item-right ,
+.carousel-inner > .carousel-item.active{
+    transform:translate3d(0,0,0); -webkit-transform:translate3d(0,0,0);-ms-transform:translate3d(0,0,0);; -moz-transform:translate3d(0,0,0); -o-transform:translate3d(0,0,0); top:0;
+    
+}
+
+/*------------------------------- vertical carousel indicators ------------------------------*/
+.carousel-indicators{
+    position:absolute;
+    top:0;
+    bottom:0;
+    margin:auto;
+    height:20px;
+    right:-84px; 
+    left:auto;
+    width:auto;
+    -webkit-transform: rotate(90deg);
+    -moz-transform: rotate(90deg);
+    -ms-transform: rotate(90deg);
+    -o-transform: rotate(90deg);
+    transform: rotate(90deg);
+}
+.carousel-indicators li{
+    display:block; margin-bottom:5px; border:1px solid #00a199; 
+    margin-bottom: 5px;}
+    
+}
+.carousel-indicators li.active{
+    margin-bottom:5px; background:#00a199;
+    
+}
+
+.collection_section{ width: 100%; float: left; padding-bottom: 0px; }
+.new_text{
+	width: 100%;
+	float: left;
+	font-size: 24pt;
+	color: #0c0116;
+}
+
+.consectetur_text{
+	width: 100%;
+	float: left;
+	font-size: 14pt;
+	color: #0c0116;
+	font-weight: 400;
+	margin-left: 0px;
+    padding-bottom: 30px;
+}
 
 .collection_section_2{
 	width: 100%;
@@ -669,9 +754,16 @@ a:hover {
 .copyright a{ color: #ffffff; }
 .copyright a:hover{ color: #000; }
 
+.map_text {
+    padding-left: 15px;
+}
 
-
-
+.delivery_text{
+	width: 100%;
+	float: left;
+	font-size: 17px;
+	color: #ffffff;
+}
 
 .enter_email{
     border: 1px solid #000;
@@ -689,6 +781,13 @@ a:hover {
     font-size: 13pt;
     height: 50px;
     color: #ffffff;
+}
+
+
+.about_main {
+    width: 100%;
+    float: left;
+        padding-bottom: 30px;
 }
 
 .header_main {
