@@ -133,21 +133,54 @@
       <header>Sign Up</header>
     </div>
     <div class="input-box">
-      <input type="text" class="input-field" placeholder="Name" autocomplete="off" required="">
+      <input type="text" class="input-field" id="name" placeholder="Name" autocomplete="off" required="">
     </div>
     <div class="input-box">
-      <input type="email" class="input-field" placeholder="Email" autocomplete="off" required="">
+      <input type="email" class="input-field" id="email" placeholder="Email" autocomplete="off" required="">
     </div>
     <div class="input-box">
-      <input type="password" class="input-field" placeholder="Password" autocomplete="off" required="">
+      <input type="password" class="input-field" id="password" placeholder="Password" autocomplete="off" required="">
     </div>
     <div class="input-submit">
       <button class="submit-btn" id="submit"></button>
       <label for="submit">Sign Up</label>
     </div>
     <div class="sign-in-link">
-      <p>Already have an account? <a href="authorization.html">Sign In</a></p>
+      <p>Already have an account? <a href="/login">Sign In</a></p>
     </div>
   </div>
+
+  <!-- JavaScript for handling login submission -->
+  <script>
+    document.getElementById("submit").addEventListener("click", async () => {
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      if (!name || !email || !password) {
+        alert("Please fill in all fields");
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:8080/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          alert(`Welcome ${data.name}!`);
+        } else {
+          alert(`Error: ${data.error}`);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Failed to login. Please try again.");
+      }
+    });
+  </script>
+
 </body>
 </html>
