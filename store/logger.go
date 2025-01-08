@@ -34,7 +34,7 @@ type User struct {
 }
 
 func init() {
-	// Set up structured logging
+
 	logger.SetFormatter(&logrus.JSONFormatter{})
 	logger.SetOutput(os.Stdout)
 
@@ -240,7 +240,7 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cursor, err := collection.Find(ctx, bson.M{}) // Получаем все документы из коллекции
+	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
 		http.Error(w, "Error fetching sneakers", http.StatusInternalServerError)
 		log.Println("Error fetching sneakers:", err)
@@ -256,5 +256,12 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sneakers) // Возвращаем данные в формате JSON
+	json.NewEncoder(w).Encode(sneakers)
+}
+
+type Sneaker struct {
+	Model string  `json:"model"`
+	Brand string  `json:"brand"`
+	Color string  `json:"color"`
+	Price float64 `json:"price"`
 }
