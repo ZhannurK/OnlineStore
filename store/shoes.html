@@ -88,8 +88,8 @@
     async function fetchSneakers() {
       try {
         const response = await fetch("http://localhost:8080/sneakers");
-        allSneakers = await response.json(); // 1) assign to allSneakers
-        applyFiltersAndRender();            // 2) call the filter/render pipeline
+        allSneakers = await response.json();
+        applyFiltersAndRender();
       } catch (error) {
         console.error("Error fetching sneakers:", error);
       }
@@ -100,20 +100,17 @@
       const color = document.getElementById("color-filter").value;
       const sortOption = document.getElementById("sort-filter").value;
   
-      // Filter
       let filtered = allSneakers.filter(s =>
         (!brand || s.brand === brand) &&
         (!color || s.color === color)
       );
   
-      // Sort
       if (sortOption === "price-asc") {
         filtered.sort((a, b) => a.price - b.price);
       } else if (sortOption === "price-desc") {
         filtered.sort((a, b) => b.price - a.price);
       }
   
-      // Render
       renderSneakers(filtered, currentPage, itemsPerPage);
       setupPagination(filtered.length, itemsPerPage);
     }
