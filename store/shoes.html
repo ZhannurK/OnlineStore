@@ -81,96 +81,89 @@
    </body>
 
    <script>
-      const API_URL = "http://localhost:8080/sneakers";
-      let currentPage = 1;
-      const itemsPerPage = 5;
-      
-      async function fetchSneakers() {
-        try {
-          const response = await fetch(API_URL);
-          const sneakers = await response.json();
-          renderSneakers(sneakers, currentPage, itemsPerPage);
-          setupPagination(sneakers.length, itemsPerPage);
-        } catch (error) {
-          console.error("Error fetching sneakers:", error);
-        }
+    let allSneakers = [];
+    let currentPage = 1;
+    const itemsPerPage = 5;
+  
+    async function fetchSneakers() {
+      try {
+        const response = await fetch("http://localhost:8080/sneakers");
+        allSneakers = await response.json(); // 1) assign to allSneakers
+        applyFiltersAndRender();            // 2) call the filter/render pipeline
+      } catch (error) {
+        console.error("Error fetching sneakers:", error);
       }
-      
-      function renderSneakers(sneakers, page, itemsPerPage) {
-        const container = document.getElementById("sneakers-container");
-        container.innerHTML = "";
-      
-        const start = (page - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
-        const paginatedSneakers = sneakers.slice(start, end);
-      
-        paginatedSneakers.forEach(sneaker => {
-          const sneakerCard = document.createElement("div");
-          sneakerCard.className = "sneaker-card";
-      
-          sneakerCard.innerHTML = `
-            <h2>${sneaker.model}</h2>
-            <p>Brand: ${sneaker.brand}</p>
-            <p>Color: ${sneaker.color}</p>
-            <p>Price: $${sneaker.price}</p>
-          `;
-      
-          container.appendChild(sneakerCard);
-        });
+    }
+  
+    function applyFiltersAndRender() {
+      const brand = document.getElementById("brand-filter").value;
+      const color = document.getElementById("color-filter").value;
+      const sortOption = document.getElementById("sort-filter").value;
+  
+      // Filter
+      let filtered = allSneakers.filter(s =>
+        (!brand || s.brand === brand) &&
+        (!color || s.color === color)
+      );
+  
+      // Sort
+      if (sortOption === "price-asc") {
+        filtered.sort((a, b) => a.price - b.price);
+      } else if (sortOption === "price-desc") {
+        filtered.sort((a, b) => b.price - a.price);
       }
-
-
-
-      function applyFiltersAndRender() {
-         const brand = document.getElementById("brand-filter").value;
-         const color = document.getElementById("color-filter").value;
-         const sortOption = document.getElementById("sort-filter").value;
-
-         let filteredSneakers = allSneakers.filter(sneaker => {
-             return (
-                 (!brand || sneaker.brand === brand) &&
-                 (!color || sneaker.color === color)
-             );
-         });
-
-         if (sortOption === "price-asc") {
-             filteredSneakers.sort((a, b) => a.price - b.price);
-         } else if (sortOption === "price-desc") {
-             filteredSneakers.sort((a, b) => b.price - a.price);
-         }
-
-         renderSneakers(filteredSneakers, currentPage, itemsPerPage);
-         setupPagination(filteredSneakers.length, itemsPerPage);
-     }
-
-
-      
-      function setupPagination(totalItems, itemsPerPage) {
-        const paginationContainer = document.getElementById("pagination");
-        paginationContainer.innerHTML = "";
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
-      
-        for (let i = 1; i <= totalPages; i++) {
-          const button = document.createElement("button");
-          button.textContent = i;
-          button.className = "pagination-btn";
-          button.addEventListener("click", () => {
-            currentPage = i;
-            fetchSneakers();
-          });
-      
-          paginationContainer.appendChild(button);
-        }
-      }
-      
-      document.addEventListener("DOMContentLoaded", () => {
-         fetchSneakers();
-
-
-         document.getElementById("brand-filter").addEventListener("change", applyFiltersAndRender);
-         document.getElementById("color-filter").addEventListener("change", applyFiltersAndRender);
-         document.getElementById("sort-filter").addEventListener("change", applyFiltersAndRender);
+  
+      // Render
+      renderSneakers(filtered, currentPage, itemsPerPage);
+      setupPagination(filtered.length, itemsPerPage);
+    }
+  
+    function renderSneakers(sneakers, page, limit) {
+      const container = document.getElementById("sneakers-container");
+      container.innerHTML = "";
+  
+      const start = (page - 1) * limit;
+      const end = start + limit;
+      const paginated = sneakers.slice(start, end);
+  
+      paginated.forEach(s => {
+        const card = document.createElement("div");
+        card.className = "sneaker-card";
+        card.innerHTML = `
+          <h2>${s.model}</h2>
+          <p>Brand: ${s.brand}</p>
+          <p>Color: ${s.color}</p>
+          <p>Price: $${s.price}</p>
+        `;
+        container.appendChild(card);
       });
-      
-   </script>
+    }
+  
+    function setupPagination(totalItems, limit) {
+      const paginationContainer = document.getElementById("pagination");
+      paginationContainer.innerHTML = "";
+      const totalPages = Math.ceil(totalItems / limit);
+  
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = "pagination-btn";
+        btn.addEventListener("click", () => {
+          currentPage = i;
+          applyFiltersAndRender(); // important to call the filter pipeline
+        });
+        paginationContainer.appendChild(btn);
+      }
+    }
+  
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchSneakers();
+  
+      // Hook up filters
+      document.getElementById("brand-filter").addEventListener("change", applyFiltersAndRender);
+      document.getElementById("color-filter").addEventListener("change", applyFiltersAndRender);
+      document.getElementById("sort-filter").addEventListener("change", applyFiltersAndRender);
+    });
+  </script>
+  
 </html>

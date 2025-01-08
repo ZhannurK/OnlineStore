@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/time/rate"
@@ -34,14 +34,24 @@ type User struct {
 }
 
 func init() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("Не удалось получить домашнюю директорию пользователя: %v", err)
+	}
 
-	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetOutput(os.Stdout)
+	logFilePath := filepath.Join(homeDir, "Downloads", "server-logs.txt")
 
-	// Connect to MongoDB
-	var err error
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Не удалось открыть файл для логов: %v", err)
+	}
+
+	logger.SetOutput(file)
+	logger.SetFormatter(&logrus.TextFormatter{})
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	db, err = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to connect to MongoDB")
@@ -81,6 +91,7 @@ func main() {
 		Addr:    ":8080",
 		Handler: r,
 	}
+
 	// Graceful Shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
@@ -104,6 +115,7 @@ func main() {
 	logger.Info("Server exited gracefully")
 }
 
+// Rate limit middleware
 func rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.Allow() {
@@ -218,6 +230,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "User signed up successfully"})
 }
 
+// Обработка ошибок
 func handleError(w http.ResponseWriter, statusCode int, message string, err error) {
 	if err != nil {
 		logger.WithError(err).Error(message)
