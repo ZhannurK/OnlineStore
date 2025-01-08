@@ -130,11 +130,64 @@ func rateLimitMiddleware(next http.Handler) http.Handler {
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
 	logger.WithField("action", "get_users").Info("Fetching users from MongoDB")
+
+	sortBy := r.URL.Query().Get("sort")
+	emailFilter := r.URL.Query().Get("email")
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("pageSize")
+
+	logger.WithFields(logrus.Fields{
+		"emailFilter": emailFilter,
+		"sortBy":      sortBy,
+		"page":        pageStr,
+		"pageSize":    pageSizeStr,
+	}).Info("Received request to get users with filters")
+
+	pageInt := 1
+	pageSizeInt := 9
+
+	if pageStr != "" {
+		if val, err := fmt.Sscanf(pageStr, "%d", &pageInt); err == nil && val > 0 {
+		}
+	}
+
+	if pageSizeStr != "" {
+		if val, err := fmt.Sscanf(pageSizeStr, "%d", &pageSizeInt); err == nil && val > 0 {
+		}
+	}
+
+	filter := bson.M{}
+	if emailFilter != "" {
+		filter["email"] = bson.M{"$regex": emailFilter, "$options": "i"}
+	}
+
+	var sortFields bson.D
+	switch sortBy {
+	case "nameAsc":
+		sortFields = bson.D{{Key: "name", Value: 1}}
+	case "nameDesc":
+		sortFields = bson.D{{Key: "name", Value: -1}}
+	case "createdAt":
+		sortFields = bson.D{{Key: "created_at", Value: 1}}
+	case "id":
+		sortFields = bson.D{{Key: "_id", Value: 1}}
+	default:
+		sortFields = bson.D{{Key: "created_at", Value: -1}}
+	}
+
+	skip := int64((pageInt - 1) * pageSizeInt)
+	limit := int64(pageSizeInt)
+
+	findOptions := options.Find().
+		SetSort(sortFields).
+		SetSkip(skip).
+		SetLimit(limit)
+
 	collection := db.Database("db").Collection("users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cursor, err := collection.Find(ctx, map[string]interface{}{})
+	cursor, err := collection.Find(ctx, filter, findOptions)
 	if err != nil {
 		handleError(w, http.StatusInternalServerError, "Database query error", err)
 		return
