@@ -4,93 +4,139 @@
       <meta charset="utf-8">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <meta name="viewport" content="initial-scale=1, maximum-scale=1">
       <title>Shoes</title>
-      <meta name="keywords" content="">
-      <meta name="description" content="">
-      <meta name="author" content="">
-      <link rel="stylesheet" href="css/bootstrap.min.css">
-      <link rel="stylesheet" href="css/style.css">
-   </head>
-   <!-- body -->
+      <link rel="stylesheet" href="./public/css/bootstrap.min.css">
+      <link rel="stylesheet" href="./public/css/style.css">
+   </head>  
    <body class="main-layout">
-	<!-- header section start -->
-	<div class="header_section header_main">
-		<div class="container">
-			<div class="row">
-				<div class="col-sm-3">
-					<div class="logo"><a href="#"><img src="images/logo.png"></a></div>
-				</div>
-				<div class="col-sm-9">
-					<nav class="navbar navbar-expand-lg navbar-light bg-light">
-                        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                        </button>
-                    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+      <!-- header section start -->
+      <div class="header_section header_main">
+         <div class="container">
+            <div class="row">
+               <div class="col-sm-3">
+                  <div class="logo"><a href="#"><img src="./public/images/logo.png"></a></div>
+               </div>
+               <div class="col-sm-9">
+                  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                     <button class="navbar-toggler" type="button" data-toggle="collapse" 
+                             data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" 
+                             aria-expanded="false" aria-label="Toggle navigation">
+                       <span class="navbar-toggler-icon"></span>
+                     </button>
+                     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
                         <div class="navbar-nav">
-                           <a class="nav-item nav-link" href="store.html">Home</a>
-                           <a class="nav-item nav-link" href="shoes.html">Shoes</a>
-                           <a class="nav-item nav-link" href="contact.html">Contact</a>
+                           <a class="nav-item nav-link" href="/">Home</a>
+                           <a class="nav-item nav-link" href="/shoes">Shoes</a>
                         </div>
-                    </div>
-                    </nav>
-				</div>
-			</div>
-		</div>
-	</div>
-   	<!-- contact section start -->
-    <div class="collection_text">Contact Us</div>
-    <div class="layout_padding contact_section">
-    	<div class="container">
-    		<h1 class="new_text"><strong>Contact Now</strong></h1>
-    	</div>
-    	<div class="container-fluid ram">
-    		<div class="row">
-    			<div class="col-md-6">
-    				<div class="email_box">
-                    <div class="input_main">
-                       <div class="container">
-                          <form>
-                            <div class="form-group">
-                                <label>
-                                    <input type="text" class="email-bt" placeholder="Name" name="Name">
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label>
-                                    <input type="text" class="email-bt" placeholder="Phone Numbar" name="Name">
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label>
-                                    <input type="text" class="email-bt" placeholder="Email" name="Email">
-                                </label>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="comment"></label><textarea class="massage-bt" placeholder="Massage" rows="5" id="comment" name="Massage"></textarea>
-                            </div>
-                          </form>   
-                       </div> 
-                       <div class="send_btn">
-                        <button class="main_bt">Send</button>
-                       </div>                   
-                    </div>
-    		</div>
-    			</div>
-    			<div class="col-md-6">
-    				<div class="shop_banner">
-    					<div class="our_shop">
-    						<button class="out_shop_bt">Our Shop</button>
-    					</div>
-    				</div>
-    			</div>
-    		</div>
-    	</div>
-    </div>
-   	<!-- contact section end -->
-	
-	<div class="copyright">2019 All Rights Reserved. <a href="https://html.design">Free html  Templates</a></div>
+                     </div>
+                  </nav>
+               </div>
+            </div>
+         </div>
+      </div>
+      <!-- header section end -->
+
+      <!-- contact section start -->
+      <div class="collection_text">Contact Us</div>
+      <div class="layout_padding contact_section">
+         <div class="container">
+            <h1 class="new_text"><strong>Contact Now</strong></h1>
+         </div>
+         <div class="container-fluid ram">
+            <div class="row">
+               <div class="col-md-6">
+                  <div class="email_box">
+                     <div class="input_main">
+                        <div class="container">
+                           <!-- CONTACT FORM FIELDS -->
+                           <div class="form-group">
+                              <label>
+                                 <input type="text" class="email-bt" placeholder="Name" name="Name">
+                              </label>
+                           </div>
+                           <div class="form-group">
+                              <label>
+                                 <input type="text" class="email-bt" placeholder="Phone Number" name="Phone">
+                              </label>
+                           </div>
+                           <div class="form-group">
+                              <label>
+                                 <input type="text" class="email-bt" placeholder="Email" name="Email">
+                              </label>
+                           </div>
+                           <div class="form-group">
+                              <label for="comment">
+                                 <textarea class="massage-bt" placeholder="Message" rows="5" 
+                                           id="comment" name="Message"></textarea>
+                              </label>
+                           </div>
+                        </div>
+                        <!-- SEND BUTTON -->
+                        <div class="send_btn">
+                           <button class="main_bt" id="sendBtn">Send</button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="col-md-6">
+                  <div class="shop_banner">
+                     <div>
+                        <img src="./public/images/shop-banner.png">
+                        <button class="out_shop_bt">Our Shop</button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <!-- contact section end -->
+
+      <div class="copyright">2019 All Rights Reserved.</div>
+
+      <!-- JAVASCRIPT TO HANDLE THE CLICK & SEND EMAIL -->
+      <script>
+         document.getElementById('sendBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Collect values from the form
+            const nameField = document.querySelector('input[name="Name"]');
+            const phoneField = document.querySelector('input[name="Phone"]');
+            const emailField = document.querySelector('input[name="Email"]');
+            const messageField = document.querySelector('textarea[name="Message"]');
+
+            const nameValue = nameField.value || '';
+            const phoneValue = phoneField.value || '';
+            const emailValue = emailField.value || '';
+            const messageValue = messageField.value || '';
+
+            fetch('/sendEmail', {
+               method: 'POST',
+               headers: {
+                  'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({
+                  // Adjust "to" if you want all messages to go to your own inbox
+                  to: "admin@yourdomain.com", 
+                  subject: "Contact Form from " + nameValue,
+                  body: `
+                     Name: ${nameValue}
+                     Phone: ${phoneValue}
+                     Email: ${emailValue}
+                     Message: ${messageValue}
+                  `
+               })
+            })
+            .then(response => response.json())
+            .then(data => {
+               alert(data.message || 'Email sent or request complete!');
+               console.log("Server response:", data);
+            })
+            .catch(err => {
+               alert("Error sending email");
+               console.error(err);
+            });
+         });
+      </script>
 
    </body>
 </html>

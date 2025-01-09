@@ -18,6 +18,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/time/rate"
+
+	gomail "gopkg.in/mail.v2"
 )
 
 var (
@@ -36,14 +38,14 @@ type User struct {
 func init() {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("Не удалось получить домашнюю директорию пользователя: %v", err)
+		log.Fatalf("Couldn`t reach users home directory: %v", err)
 	}
 
 	logFilePath := filepath.Join(homeDir, "Downloads", "server-logs.txt")
 
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatalf("Не удалось открыть файл для логов: %v", err)
+		log.Fatalf("Couldn`t open file for logers: %v", err)
 	}
 
 	logger.SetOutput(file)
@@ -74,6 +76,10 @@ func main() {
 		http.ServeFile(writer, request, "./store/store.html")
 	}).Methods(http.MethodGet)
 
+	r.HandleFunc("/contact", func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, "./store/contact.html")
+	}).Methods(http.MethodGet)
+
 	r.PathPrefix("/public").Handler(http.FileServer(http.Dir("./store")))
 
 	r.HandleFunc("/users", getUsers).Methods(http.MethodGet)
@@ -85,6 +91,9 @@ func main() {
 	r.HandleFunc("/signup", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, "./store/signup.html")
 	}).Methods(http.MethodGet)
+
+	r.HandleFunc("/sendEmail", sendEmailHandler).Methods(http.MethodPost)
+
 	r.Use(rateLimitMiddleware)
 
 	srv := &http.Server{
@@ -330,4 +339,73 @@ type Sneaker struct {
 	Brand string  `json:"brand"`
 	Color string  `json:"color"`
 	Price float64 `json:"price"`
+}
+
+// sendEmailHandler handles POST requests to /sendEmail
+// Expects JSON with { "to": "...", "subject": "...", "body": "...", "attachment": "..." }
+func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		To         string `json:"to"`
+		Subject    string `json:"subject"`
+		Body       string `json:"body"`
+		Attachment string `json:"attachment"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+
+	if err := sendMail(req.To, req.Subject, req.Body, req.Attachment); err != nil {
+		handleError(w, http.StatusInternalServerError, "Failed to send email", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Email sent successfully",
+	})
+}
+
+// sendMail uses Gomail to send an email with optional attachment
+func sendMail(to, subject, body, attachmentPath string) error {
+	mailHost := os.Getenv("MAIL_HOST")
+	if mailHost == "" {
+		mailHost = "sandbox.smtp.mailtrap.io"
+	}
+	mailPort := 587
+	mailUser := os.Getenv("MAIL_USERNAME")
+	if mailUser == "" {
+		mailUser = "default_username"
+	}
+	mailPass := os.Getenv("MAIL_PASSWORD")
+	if mailPass == "" {
+		mailPass = "default_password"
+	}
+
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", mailUser)
+	msg.SetHeader("To", to)
+	msg.SetHeader("Subject", subject)
+	msg.SetBody("text/plain", body)
+
+	if attachmentPath != "" {
+		msg.Attach(attachmentPath)
+	}
+
+	dialer := gomail.NewDialer(mailHost, mailPort, mailUser, mailPass)
+	if err := dialer.DialAndSend(msg); err != nil {
+		logger.WithError(err).Error("Failed to send email via Gomail")
+		return err
+	}
+
+	logger.WithFields(logrus.Fields{
+		"to":      to,
+		"subject": subject,
+	}).Info("Email sent successfully")
+	return nil
 }
