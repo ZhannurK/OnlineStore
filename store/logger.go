@@ -3,16 +3,20 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
+	"github.com/lpernett/godotenv"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -64,7 +68,16 @@ func init() {
 	logger.Info("Connected to MongoDB")
 }
 
+var jwtKey []byte
+
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	jwtKey = []byte(os.Getenv("JWTSECRET"))
+
 	r := mux.NewRouter()
 
 	r.HandleFunc("/sneakers", getSneakers).Methods(http.MethodGet)
@@ -91,6 +104,11 @@ func main() {
 	r.HandleFunc("/signup", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, "./store/signup.html")
 	}).Methods(http.MethodGet)
+	profileHandler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, "./store/profile.html")
+	})
+	r.Handle("/profile", AuthMiddleware(profileHandler)).Methods(http.MethodGet)
+	r.Handle("/profile", AuthMiddleware(http.HandlerFunc(changePasswordHandler))).Methods(http.MethodPost)
 
 	r.HandleFunc("/sendEmail", sendEmailHandler).Methods(http.MethodPost)
 
@@ -122,6 +140,92 @@ func main() {
 		logger.WithError(err).Fatal("Server forced to shutdown")
 	}
 	logger.Info("Server exited gracefully")
+}
+
+// key is an unexported type for keys defined in this package.
+// This prevents collisions with keys defined in other packages.
+type key int
+
+// userKey is the key for user.User values in Contexts. It is
+// unexported; clients use user.NewContext and user.FromContext
+// instead of using this key directly.
+var userKey key = 333
+
+// NewContext returns a new Context that carries value u.
+func NewContext(ctx context.Context, u *string) context.Context {
+	return context.WithValue(ctx, userKey, u)
+}
+
+// FromContext returns the User value stored in ctx, if any.
+func FromContext(ctx context.Context) (*string, bool) {
+	u, ok := ctx.Value(userKey).(*string)
+	return u, ok
+}
+
+func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		OldPassword     string `json:"oldPassword"`
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirmPassword"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+
+	if creds.ConfirmPassword != creds.Password {
+		handleError(w, http.StatusBadRequest, fmt.Sprintf("passwords are not the same %s %s", creds.ConfirmPassword, creds.Password), errors.New("confirmation failed"))
+		return
+	}
+
+	collection := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	email, ok := FromContext(r.Context())
+	if !ok {
+		handleError(w, http.StatusBadRequest, "no email in context "+*email, errors.New("no email in context"))
+		return
+	}
+
+	var user User
+
+	err1 := collection.FindOne(ctx, bson.M{"email": *email}).Decode(&user)
+	if err1 != nil {
+		handleError(w, http.StatusBadRequest, "no user with this email "+*email, err1)
+		return
+	}
+
+	if creds.OldPassword != user.Password {
+		handleError(w, http.StatusBadRequest, "old password is not correct", err1)
+		return
+	}
+
+	_, err1 = collection.DeleteOne(ctx, bson.M{"email": *email})
+	if err1 != nil {
+		handleError(w, http.StatusInternalServerError, "can not update user", err1)
+		return
+	}
+
+	_, err1 = collection.InsertOne(ctx, User{
+		Email:    user.Email,
+		Name:     user.Name,
+		Password: creds.Password,
+	})
+	if err1 != nil {
+		handleError(w, http.StatusInternalServerError, "Error updating user", err1)
+		return
+	}
+
+	//sent(email, "password changed message")
+	logger.WithFields(logrus.Fields{
+		"email": user.Email,
+		"name":  user.Name,
+	}).Info("User changed password successfully")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "User changed password successfully"})
 }
 
 // Rate limit middleware
@@ -222,20 +326,28 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+type Claims struct {
+	Email string `json:"email"`
+	jwt.RegisteredClaims
+}
+
 func login(w http.ResponseWriter, r *http.Request) {
+
 	var creds struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	fmt.Println("Received request for login", r.Body)
+	fmt.Println("Received request for login")
 
+	// Decode JSON body into creds
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
 		return
 	}
+	defer r.Body.Close()
 
-	fmt.Println("Decoded creds: \n ", creds)
+	fmt.Println("Decoded creds:", creds)
 
 	collection := db.Database("db").Collection("users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -244,17 +356,105 @@ func login(w http.ResponseWriter, r *http.Request) {
 	var user User
 	err := collection.FindOne(ctx, map[string]interface{}{"email": creds.Email}).Decode(&user)
 	if err != nil {
-		handleError(w, http.StatusUnauthorized, "Invalid email, or password", err)
+		// If the user is not found or any other DB error
+		handleError(w, http.StatusUnauthorized, "Invalid email or password", err)
 		return
 	}
 
+	// TODO: In production, check hashed password using bcrypt or other secure method
+	if user.Password != creds.Password {
+		handleError(w, http.StatusUnauthorized, "Invalid email or password", nil)
+		return
+	}
+
+	// Build the JWT claims
+	expiresAt := time.Now().Add(24 * time.Hour) // token expiration, e.g. 24h from now
+	claims := &Claims{
+		Email: user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			Issuer:    "Pullo",
+			Subject:   user.Email,
+		},
+	}
+
+	// Create the JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the token with your secret key
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Could not generate token", err)
+		return
+	}
+
+	// Log successful login
 	logger.WithFields(logrus.Fields{
 		"userID": user.ID,
 		"email":  user.Email,
 	}).Info("User logged in successfully")
 
+	// Return token and/or user information as JSON
+	//w.Header().Set("Content-Type", "application/json")
+	//json.NewEncoder(w).Encode(map[string]interface{}{
+	//	"tokenString": tokenString,
+	//	"token":       token,
+	//	"expires_at":  expiresAt.Format(time.RFC3339),
+	//})
+	http.SetCookie(w, &http.Cookie{
+		Name:    "JWT",
+		Value:   "Bearer " + tokenString,
+		Expires: expiresAt,
+	})
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success", "name": user.Name, "email": user.Email})
+}
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 1. Extract the "Authorization" header: "Bearer <token>"
+		authCookie, err := r.Cookie("JWT")
+		if err != nil || authCookie.Value == "" {
+			handleError(w, http.StatusUnauthorized, "Missing Authorization cookie", nil)
+			return
+		}
+
+		bearerToken := authCookie.Value
+		parts := strings.Split(bearerToken, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			handleError(w, http.StatusUnauthorized, "Invalid Authorization cookie format", nil)
+			return
+		}
+		tokenString := parts[1]
+
+		// 2. Parse & validate the JWT token
+		claims := &Claims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+			// Ensure the signing method is HMAC
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return jwtKey, nil
+		})
+
+		if err != nil || !token.Valid {
+			handleError(w, http.StatusUnauthorized, "Invalid or expired token", err)
+			fmt.Println("Error:", err)
+			str, err := json.Marshal(token)
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+			fmt.Println("Token:", string(str))
+			return
+		}
+
+		ctx := NewContext(r.Context(), &claims.Email)
+		// 4. Proceed to the next handler with the updated context
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func signup(w http.ResponseWriter, r *http.Request) {

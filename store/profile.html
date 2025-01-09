@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>User Profile</title>
+
+      <!-- Same style references as your site -->
+      <link rel="stylesheet" href="./public/css/style.css">
+      <link rel="stylesheet" href="./public/css/bootstrap.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+   </head>
+
+   <body class="main-layout">
+      <!-- Header section start -->
+      <div class="header_section">
+         <div class="container">
+            <div class="row">
+               <div class="col-sm-3">
+                  <div class="logo">
+                     <a href="#"><img src="./public/images/logo.png" alt="Pullo Logo"></a>
+                  </div>
+               </div>
+               <div class="col-sm-9">
+                  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                     <button class="navbar-toggler" type="button" data-toggle="collapse" 
+                             data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" 
+                             aria-expanded="false" aria-label="Toggle navigation">
+                       <span class="navbar-toggler-icon"></span>
+                     </button>
+                     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                        <div class="navbar-nav">
+                            <a class="nav-item nav-link" href="/">Home</a>
+                           <a class="nav-item nav-link" href="/shoes">Shoes</a>
+                           <a class="nav-item nav-link" href="/contact">Contact</a>
+                           <a class="nav-item nav-link profile-icon" href="/login">
+                              <i class="fas fa-user-circle"></i>
+                           </a>
+                        </div>
+                     </div>
+                  </nav>
+               </div>
+            </div>
+         </div>
+         <!-- (Optional) banner image or text, if you want a full banner like on the home page -->
+         <div class="banner_section">
+            <div class="container">
+               <h1 style="color: #ffffff; padding: 40px 0; text-align: center;">
+                  Welcome to Your Profile
+               </h1>
+            </div>
+         </div>
+      </div>
+      <!-- Header section end -->
+
+      <!-- Profile content start -->
+      <div class="layout_padding">
+         <div class="container">
+            <h2 class="new_text"><strong>Your Account</strong></h2>
+            <div class="row">
+               <!-- Profile info side -->
+               <div class="col-md-6">
+                  <div class="best_shoes" style="padding: 20px;">
+                     <h3 class="best_text">Personal Details</h3>
+                     <!-- Example of displaying user info -->
+                     <ul style="list-style:none; padding-left: 0; line-height: 2;">
+                        <li><strong>Name:</strong> John Doe</li>
+                        <li><strong>Email:</strong> john.doe@example.com</li>
+                        <li><strong>Phone:</strong> +1 555 123 4567</li>
+                     </ul>
+                     <!-- Example of an "edit" button (could open a modal or navigate to another page) -->
+                     <button class="main_bt" style="margin-top: 15px;">Edit Profile</button>
+                  </div>
+               </div>
+
+               <!-- Profile settings / password update side -->
+               <div class="col-md-6">
+                  <div class="best_shoes" style="padding: 20px;">
+                     <h3 class="best_text">Account Settings</h3>
+                     <!-- Example form for changing password, etc. -->
+                     <div>
+                        <div class="form-group">
+                           <label for="oldPassword">Old Password</label>
+                           <input type="password" class="email-bt" id="oldPassword" placeholder="Enter old password">
+                        </div>
+                        <div class="form-group">
+                           <label for="password">New Password</label>
+                           <input type="password" class="email-bt" id="password" placeholder="Enter new password">
+                        </div>
+                        <div class="form-group">
+                           <label for="confirmPassword">Confirm New Password</label>
+                           <input type="password" class="email-bt" id="confirmPassword" placeholder="Confirm new password">
+                        </div>
+                        <button type="submit" id="submit" class="main_bt">Update Password</button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Example of an order history or favorites section -->
+            <div class="row" style="margin-top:40px;">
+               <div class="col-md-12">
+                  <div class="best_shoes" style="padding: 20px;">
+                     <h3 class="best_text">Order History</h3>
+                     <p>Here you can display a table/list of the user's past orders, statuses, etc.</p>
+                     <!-- Example table -->
+                     <div class="table-responsive">
+                        <table class="table table-striped">
+                           <thead>
+                              <tr>
+                                 <th>Order ID</th>
+                                 <th>Date</th>
+                                 <th>Status</th>
+                                 <th>Total</th>
+                              </tr>
+                           </thead>
+                        </table>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <!-- Profile content end -->
+
+      <!-- Footer or copyright -->
+      <div class="copyright">2025 All Rights Reserved.</div>
+
+      <script>
+         document.getElementById("submit").addEventListener("click", async () => {
+            const password = document.getElementById("password").value;
+            const oldPassword = document.getElementById("oldPassword").value;
+            const confirmPassword = document.getElementById("confirmPassword").value;
+
+            if (!password || !oldPassword || !confirmPassword) {
+               alert("Please fill in all fields");
+               return;
+            }
+
+            try {
+               const response = await fetch("http://localhost:8080/profile", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ oldPassword: oldPassword, password: password, confirmPassword: confirmPassword }),
+               });
+
+               const data = await response.json();
+               if (response.ok) {
+                  alert(`Welcome ${data.name}!`);
+               } else {
+                  alert(`Error: ${data.error}`);
+               }
+            } catch (error) {
+               console.error("Error:", error);
+               alert("Failed to login. Please try again.");
+            }
+         });
+      </script>
+
+   </body>
+</html>
