@@ -22,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/time/rate"
-
 	gomail "gopkg.in/mail.v2"
 )
 
@@ -217,6 +216,8 @@ func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
 		handleError(w, http.StatusInternalServerError, "Error updating user", err1)
 		return
 	}
+
+	sendMail(user.Email, "Pullo password changed", "Your pullo account password was changed", "C:\\Users\\zhann\\GolandProjects\\programming\\store\\public\\images\\passChange.png")
 
 	//sent(email, "password changed message")
 	logger.WithFields(logrus.Fields{
@@ -573,36 +574,36 @@ func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 // sendMail uses Gomail to send an email with optional attachment
 func sendMail(to, subject, body, attachmentPath string) error {
-	mailHost := os.Getenv("MAIL_HOST")
-	if mailHost == "" {
-		mailHost = "sandbox.smtp.mailtrap.io"
-	}
-	mailPort := 587
-	mailUser := os.Getenv("MAIL_USERNAME")
-	if mailUser == "" {
-		mailUser = "default_username"
-	}
-	mailPass := os.Getenv("MAIL_PASSWORD")
-	if mailPass == "" {
-		mailPass = "default_password"
-	}
+	// Sender data.
+	username := os.Getenv("PULLOEMAIL")
+	password := os.Getenv("PULLOEMAIL_PASSWORD")
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", mailUser)
-	msg.SetHeader("To", to)
-	msg.SetHeader("Subject", subject)
-	msg.SetBody("text/plain", body)
+	// Receiver email address.
+	message := gomail.NewMessage()
 
-	if attachmentPath != "" {
-		msg.Attach(attachmentPath)
+	// Set email headers
+	message.SetHeader("From", "pullo@demomailtrap.com")
+	message.SetHeader("To", to)
+	message.SetHeader("Subject", subject)
+
+	// Set email body
+	message.SetBody("text/html", body)
+
+	// Add attachments
+	message.Attach(attachmentPath)
+
+	// Set up the SMTP dialer
+	dialer := gomail.NewDialer("live.smtp.mailtrap.io", 587, username, password)
+
+	// Send the email
+	err := dialer.DialAndSend(message)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"Module": "SendMail",
+			"Action": "dialer.DialAndSend",
+		}).Error(err)
+		return errors.New("Failed to send email: " + err.Error())
 	}
-
-	dialer := gomail.NewDialer(mailHost, mailPort, mailUser, mailPass)
-	if err := dialer.DialAndSend(msg); err != nil {
-		logger.WithError(err).Error("Failed to send email via Gomail")
-		return err
-	}
-
 	logger.WithFields(logrus.Fields{
 		"to":      to,
 		"subject": subject,
