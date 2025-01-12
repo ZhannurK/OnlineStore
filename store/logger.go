@@ -397,13 +397,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 		"email":  user.Email,
 	}).Info("User logged in successfully")
 
-	// Return token and/or user information as JSON
-	//w.Header().Set("Content-Type", "application/json")
-	//json.NewEncoder(w).Encode(map[string]interface{}{
-	//	"tokenString": tokenString,
-	//	"token":       token,
-	//	"expires_at":  expiresAt.Format(time.RFC3339),
-	//})
 	http.SetCookie(w, &http.Cookie{
 		Name:    "JWT",
 		Value:   "Bearer " + tokenString,
@@ -582,7 +575,7 @@ func sendMail(to, subject, body, attachmentPath string) error {
 	message := gomail.NewMessage()
 
 	// Set email headers
-	message.SetHeader("From", "pullo@demomailtrap.com")
+	message.SetHeader("From", username)
 	message.SetHeader("To", to)
 	message.SetHeader("Subject", subject)
 
@@ -593,7 +586,7 @@ func sendMail(to, subject, body, attachmentPath string) error {
 	message.Attach(attachmentPath)
 
 	// Set up the SMTP dialer
-	dialer := gomail.NewDialer("live.smtp.mailtrap.io", 587, username, password)
+	dialer := gomail.NewDialer(os.Getenv("PULLO_EMAIL_PROVIDER"), 587, username, password)
 
 	// Send the email
 	err := dialer.DialAndSend(message)
