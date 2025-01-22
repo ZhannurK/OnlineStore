@@ -1,14 +1,5 @@
-
-
-/*--------------------------------------------------------------------- import Fonts ---------------------------------------------------------------------*/
-
 @import url('https://fonts.googleapis.com/css?family=Rajdhani:300,400,500,600,700');
 @import url('https://fonts.googleapis.com/css?family=Poppins:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i');
-
-/*****---------------------------------------- 1) font-family: 'Rajdhani', sans-serif;
- 2) font-family: 'Poppins', sans-serif;
- ----------------------------------------*****/
-
 
 * {
      box-sizing: border-box !important;
@@ -572,7 +563,7 @@ body{
     background: #ff4e5b;
     border: none;
     width: 170px;
-    height: 58px;
+    height: 70px;
     font-size: 26px;
     color: #ffffff;
 }
@@ -732,10 +723,6 @@ a:hover {
 }
 
 
-
-
-
-
 /* Основные стили для контейнера списка кроссовок */
 #sneakers-container {
     display: grid;
@@ -806,33 +793,3 @@ a:hover {
     font-weight: bold;
     cursor: default;
   }
-  
-
-/* #sneakers-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
-  }
-  
-  .sneaker-card {
-    border: 1px solid #ddd;
-    padding: 20px;
-    text-align: center;
-    width: 250px;
-  }
-  
-  .sneaker-card img {
-    width: 100%;
-    height: auto;
-  }
-  
-  .sneaker-card h2 {
-    font-size: 20px;
-    margin: 10px 0;
-  }
-  
-  .sneaker-card p {
-    margin: 5px 0;
-  }
-   */

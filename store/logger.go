@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,31 +31,37 @@ var (
 	db      *mongo.Client
 	logger  = logrus.New()
 	limiter = rate.NewLimiter(50, 50)
+	jwtKey  []byte
 )
 
 type User struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
+	ID                string `json:"id" bson:"_id,omitempty"`
+	Email             string `json:"email" bson:"email"`
+	Name              string `json:"name" bson:"name"`
+	Password          string `json:"password" bson:"password"`
+	Verified          bool   `json:"verified" bson:"verified"`
+	ConfirmationToken string `json:"confirmationToken" bson:"confirmationToken"`
 }
+
+// --------------------------------------------------------
+// SETUP
+// --------------------------------------------------------
 
 func init() {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatalf("Couldn`t reach users home directory: %v", err)
 	}
-
 	logFilePath := filepath.Join(homeDir, "Downloads", "server-logs.txt")
 
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatalf("Couldn`t open file for logers: %v", err)
+		log.Fatalf("Couldn`t open file for logging: %v", err)
 	}
-
 	logger.SetOutput(file)
 	logger.SetFormatter(&logrus.TextFormatter{})
 
+	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -67,58 +75,72 @@ func init() {
 	logger.Info("Connected to MongoDB")
 }
 
-var jwtKey []byte
+// --------------------------------------------------------
+// MAIN
+// --------------------------------------------------------
 
 func main() {
+	// Load environment variables
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
 	jwtKey = []byte(os.Getenv("JWTSECRET"))
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/sneakers", getSneakers).Methods(http.MethodGet)
-	r.HandleFunc("/shoes", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, "./store/shoes.html")
+	// Static file routes
+	r.HandleFunc("/shoes", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/shoes.html")
 	}).Methods(http.MethodGet)
-
-	r.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, "./store/store.html")
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/store.html")
 	}).Methods(http.MethodGet)
-
-	r.HandleFunc("/contact", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, "./store/contact.html")
+	r.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/contact.html")
 	}).Methods(http.MethodGet)
 
 	r.PathPrefix("/public").Handler(http.FileServer(http.Dir("./store")))
 
+	// API routes
+	r.HandleFunc("/sneakers", getSneakers).Methods(http.MethodGet)
 	r.HandleFunc("/users", getUsers).Methods(http.MethodGet)
+
+	// Authentication routes
 	r.HandleFunc("/login", login).Methods(http.MethodPost)
+	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/authorization.html")
+	}).Methods(http.MethodGet)
+
 	r.HandleFunc("/signup", signup).Methods(http.MethodPost)
-	r.HandleFunc("/login", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, "./store/authorization.html")
+	r.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/signup.html")
 	}).Methods(http.MethodGet)
-	r.HandleFunc("/signup", func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, "./store/signup.html")
-	}).Methods(http.MethodGet)
-	profileHandler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		http.ServeFile(writer, request, "./store/profile.html")
+
+	// Profile routes
+	profileHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/profile.html")
 	})
 	r.Handle("/profile", AuthMiddleware(profileHandler)).Methods(http.MethodGet)
 	r.Handle("/profile", AuthMiddleware(http.HandlerFunc(changePasswordHandler))).Methods(http.MethodPost)
 
-	r.HandleFunc("/sendEmail", sendEmailHandler).Methods(http.MethodPost)
+	// Add the new API route for getting user profile
+	r.Handle("/api/user-profile", AuthMiddleware(http.HandlerFunc(getUserProfileHandler))).Methods(http.MethodGet)
 
+	// Email routes
+	r.HandleFunc("/sendEmail", sendEmailHandler).Methods(http.MethodPost)
+	r.HandleFunc("/confirm", confirmEmailHandler).Methods(http.MethodGet)
+
+	// Apply rate limit middleware
 	r.Use(rateLimitMiddleware)
 
+	// Start the server
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: r,
 	}
 
-	// Graceful Shutdown
+	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
@@ -128,10 +150,9 @@ func main() {
 			logger.WithError(err).Fatal("Server failed")
 		}
 	}()
-
 	<-quit
-	logger.Info("Shutting down server...")
 
+	logger.Info("Shutting down server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -141,95 +162,10 @@ func main() {
 	logger.Info("Server exited gracefully")
 }
 
-// key is an unexported type for keys defined in this package.
-// This prevents collisions with keys defined in other packages.
-type key int
+// --------------------------------------------------------
+// RATE LIMIT
+// --------------------------------------------------------
 
-// userKey is the key for user.User values in Contexts. It is
-// unexported; clients use user.NewContext and user.FromContext
-// instead of using this key directly.
-var userKey key = 333
-
-// NewContext returns a new Context that carries value u.
-func NewContext(ctx context.Context, u *string) context.Context {
-	return context.WithValue(ctx, userKey, u)
-}
-
-// FromContext returns the User value stored in ctx, if any.
-func FromContext(ctx context.Context) (*string, bool) {
-	u, ok := ctx.Value(userKey).(*string)
-	return u, ok
-}
-
-func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
-	var creds struct {
-		OldPassword     string `json:"oldPassword"`
-		Password        string `json:"password"`
-		ConfirmPassword string `json:"confirmPassword"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
-		return
-	}
-
-	if creds.ConfirmPassword != creds.Password {
-		handleError(w, http.StatusBadRequest, fmt.Sprintf("passwords are not the same %s %s", creds.ConfirmPassword, creds.Password), errors.New("confirmation failed"))
-		return
-	}
-
-	collection := db.Database("db").Collection("users")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	email, ok := FromContext(r.Context())
-	if !ok {
-		handleError(w, http.StatusBadRequest, "no email in context "+*email, errors.New("no email in context"))
-		return
-	}
-
-	var user User
-
-	err1 := collection.FindOne(ctx, bson.M{"email": *email}).Decode(&user)
-	if err1 != nil {
-		handleError(w, http.StatusBadRequest, "no user with this email "+*email, err1)
-		return
-	}
-
-	if creds.OldPassword != user.Password {
-		handleError(w, http.StatusBadRequest, "old password is not correct", err1)
-		return
-	}
-
-	_, err1 = collection.DeleteOne(ctx, bson.M{"email": *email})
-	if err1 != nil {
-		handleError(w, http.StatusInternalServerError, "can not update user", err1)
-		return
-	}
-
-	_, err1 = collection.InsertOne(ctx, User{
-		Email:    user.Email,
-		Name:     user.Name,
-		Password: creds.Password,
-	})
-	if err1 != nil {
-		handleError(w, http.StatusInternalServerError, "Error updating user", err1)
-		return
-	}
-
-	sendMail(user.Email, "Pullo password changed", "Your pullo account password was changed", "C:\\Users\\zhann\\GolandProjects\\programming\\store\\public\\images\\passChange.png")
-
-	//sent(email, "password changed message")
-	logger.WithFields(logrus.Fields{
-		"email": user.Email,
-		"name":  user.Name,
-	}).Info("User changed password successfully")
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "User changed password successfully"})
-}
-
-// Rate limit middleware
 func rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.Allow() {
@@ -242,6 +178,342 @@ func rateLimitMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// --------------------------------------------------------
+// JWT & AUTH MIDDLEWARE
+// --------------------------------------------------------
+
+type key int
+
+var userKey key = 333
+
+func NewContext(ctx context.Context, u *string) context.Context {
+	return context.WithValue(ctx, userKey, u)
+}
+
+func FromContext(ctx context.Context) (*string, bool) {
+	u, ok := ctx.Value(userKey).(*string)
+	return u, ok
+}
+
+// Claims for JWT
+type Claims struct {
+	Email string `json:"email"`
+	jwt.RegisteredClaims
+}
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authCookie, err := r.Cookie("JWT")
+		if err != nil || authCookie.Value == "" {
+			handleError(w, http.StatusUnauthorized, "Missing Authorization cookie", nil)
+			return
+		}
+		bearerToken := authCookie.Value
+		parts := strings.Split(bearerToken, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			handleError(w, http.StatusUnauthorized, "Invalid Authorization cookie format", nil)
+			return
+		}
+		tokenString := parts[1]
+
+		// Parse & validate token
+		claims := &Claims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return jwtKey, nil
+		})
+		if err != nil || !token.Valid {
+			handleError(w, http.StatusUnauthorized, "Invalid or expired token", err)
+			return
+		}
+
+		ctx := NewContext(r.Context(), &claims.Email)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// --------------------------------------------------------
+// SIGNUP
+// --------------------------------------------------------
+
+// generateRandomToken for the email confirmation
+func generateRandomToken() (string, error) {
+	// 16 random bytes -> 32 hex characters
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+// signup inserts a user with Verified=false and a confirmationToken
+func signup(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+
+	collection := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Check if user already exists
+	var existingUser User
+	err := collection.FindOne(ctx, bson.M{"email": creds.Email}).Decode(&existingUser)
+	if err == nil {
+		// Means user with that email was found (err == nil => found doc)
+		handleError(w, http.StatusConflict, "User with that email already exists", nil)
+		return
+	}
+
+	// Generate a confirmation token
+	token, err := generateRandomToken()
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Failed to generate token", err)
+		return
+	}
+
+	// Insert user with Verified=false
+	newUser := User{
+		Email:             creds.Email,
+		Password:          creds.Password,
+		Name:              creds.Name,
+		Verified:          false,
+		ConfirmationToken: token,
+	}
+	_, err = collection.InsertOne(ctx, newUser)
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Error creating user", err)
+		return
+	}
+
+	logger.WithFields(logrus.Fields{"email": creds.Email}).Info("User signed up (unverified)")
+
+	// Build confirmation URL
+	confirmURL := fmt.Sprintf("http://localhost:8080/confirm?token=%s", token)
+
+	// Email body with "Confirm" link/button
+	emailBody := fmt.Sprintf(`
+        <h1>Welcome to Pullo, %s!</h1>
+        <p>Please confirm your email by clicking the button below.</p>
+        <p>
+          <a style="background-color: #008CBA; color: white; padding: 8px 16px; 
+                    text-decoration: none; border-radius: 4px;" 
+             href="%s">
+             Confirm Your Account
+          </a>
+        </p>
+    `, creds.Name, confirmURL)
+
+	// Send email asynchronously
+	go func(to, subject, body string) {
+		if err := sendMail(to, subject, body, ""); err != nil {
+			logger.Errorf("Could not send confirmation mail to %s: %v", to, err)
+		}
+	}(creds.Email, "Confirm Your Pullo Registration", emailBody)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "User created but unverified. Check your email to confirm.",
+	})
+}
+
+// --------------------------------------------------------
+// CONFIRM
+// --------------------------------------------------------
+
+// confirmEmailHandler sets Verified=true if token is valid
+func confirmEmailHandler(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		handleError(w, http.StatusBadRequest, "Missing token in query string", nil)
+		return
+	}
+
+	collection := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Find the user with this token
+	var user User
+	err := collection.FindOne(ctx, bson.M{"confirmationToken": token}).Decode(&user)
+	if err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid or expired token", err)
+		return
+	}
+
+	// Update the user to verified=true, clear token
+	filter := bson.M{"confirmationToken": token}
+	update := bson.M{"$set": bson.M{"verified": true, "confirmationToken": ""}}
+
+	_, err = collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Could not verify user", err)
+		return
+	}
+
+	logger.WithFields(logrus.Fields{"email": user.Email}).Info("User confirmed successfully")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Email confirmed! You may now log in.",
+	})
+}
+
+// --------------------------------------------------------
+// LOGIN
+// --------------------------------------------------------
+
+func login(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	fmt.Println("Received request for login")
+
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+	defer r.Body.Close()
+	fmt.Println("Decoded creds:", creds)
+
+	collection := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var user User
+	err := collection.FindOne(ctx, bson.M{"email": creds.Email}).Decode(&user)
+	if err != nil {
+		handleError(w, http.StatusUnauthorized, "Invalid email or password", err)
+		return
+	}
+
+	// 1) Check password
+	if user.Password != creds.Password {
+		handleError(w, http.StatusUnauthorized, "Invalid email or password", nil)
+		return
+	}
+	// 2) Check if verified
+	if !user.Verified {
+		handleError(w, http.StatusForbidden, "Please confirm your email before logging in", nil)
+		return
+	}
+
+	// Build JWT claims
+	expiresAt := time.Now().Add(24 * time.Hour)
+	claims := &Claims{
+		Email: user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			Issuer:    "Pullo",
+			Subject:   user.Email,
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Could not generate token", err)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "JWT",
+		Value:   "Bearer " + tokenString,
+		Expires: expiresAt,
+	})
+
+	logger.WithFields(logrus.Fields{"email": user.Email}).Info("User logged in successfully")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "success",
+		"name":   user.Name,
+		"email":  user.Email,
+	})
+}
+
+// --------------------------------------------------------
+// CHANGE PASSWORD
+// --------------------------------------------------------
+
+func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		OldPassword     string `json:"oldPassword"`
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirmPassword"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+	if creds.ConfirmPassword != creds.Password {
+		handleError(w, http.StatusBadRequest, "Passwords do not match", errors.New("password mismatch"))
+		return
+	}
+
+	collection := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	email, ok := FromContext(r.Context())
+	if !ok {
+		handleError(w, http.StatusBadRequest, "No email in context", errors.New("missing email in context"))
+		return
+	}
+
+	var user User
+	err := collection.FindOne(ctx, bson.M{"email": *email}).Decode(&user)
+	if err != nil {
+		handleError(w, http.StatusBadRequest, "No user with this email", err)
+		return
+	}
+	if user.Password != creds.OldPassword {
+		handleError(w, http.StatusBadRequest, "Old password is incorrect", nil)
+		return
+	}
+
+	// Update user's password
+	_, err = collection.DeleteOne(ctx, bson.M{"email": user.Email})
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Cannot remove old user doc", err)
+		return
+	}
+
+	user.Password = creds.Password
+	_, err = collection.InsertOne(ctx, user)
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Error updating user", err)
+		return
+	}
+
+	// Optionally send an email about password change
+	sendMail(user.Email, "Pullo password changed",
+		"Your Pullo account password was changed successfully.",
+		"C:\\Users\\zhann\\GolandProjects\\programming\\store\\public\\images\\passChange.png")
+
+	logger.WithFields(logrus.Fields{"email": user.Email}).Info("User changed password successfully")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "User changed password successfully",
+	})
+}
+
+// --------------------------------------------------------
+// GET USERS
+// --------------------------------------------------------
+
 func getUsers(w http.ResponseWriter, r *http.Request) {
 	logger.WithField("action", "get_users").Info("Fetching users from MongoDB")
 
@@ -250,13 +522,6 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	pageStr := r.URL.Query().Get("page")
 	pageSizeStr := r.URL.Query().Get("pageSize")
 
-	logger.WithFields(logrus.Fields{
-		"emailFilter": emailFilter,
-		"sortBy":      sortBy,
-		"page":        pageStr,
-		"pageSize":    pageSizeStr,
-	}).Info("Received request to get users with filters")
-
 	pageInt := 1
 	pageSizeInt := 9
 
@@ -264,7 +529,6 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 		if val, err := fmt.Sscanf(pageStr, "%d", &pageInt); err == nil && val > 0 {
 		}
 	}
-
 	if pageSizeStr != "" {
 		if val, err := fmt.Sscanf(pageSizeStr, "%d", &pageSizeInt); err == nil && val > 0 {
 		}
@@ -291,11 +555,7 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 
 	skip := int64((pageInt - 1) * pageSizeInt)
 	limit := int64(pageSizeInt)
-
-	findOptions := options.Find().
-		SetSort(sortFields).
-		SetSkip(skip).
-		SetLimit(limit)
+	findOptions := options.Find().SetSort(sortFields).SetSkip(skip).SetLimit(limit)
 
 	collection := db.Database("db").Collection("users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -327,184 +587,15 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
-type Claims struct {
-	Email string `json:"email"`
-	jwt.RegisteredClaims
-}
-
-func login(w http.ResponseWriter, r *http.Request) {
-
-	var creds struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	fmt.Println("Received request for login")
-
-	// Decode JSON body into creds
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
-		return
-	}
-	defer r.Body.Close()
-
-	fmt.Println("Decoded creds:", creds)
-
-	collection := db.Database("db").Collection("users")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	var user User
-	err := collection.FindOne(ctx, map[string]interface{}{"email": creds.Email}).Decode(&user)
-	if err != nil {
-		// If the user is not found or any other DB error
-		handleError(w, http.StatusUnauthorized, "Invalid email or password", err)
-		return
-	}
-
-	// TODO: In production, check hashed password using bcrypt or other secure method
-	if user.Password != creds.Password {
-		handleError(w, http.StatusUnauthorized, "Invalid email or password", nil)
-		return
-	}
-
-	// Build the JWT claims
-	expiresAt := time.Now().Add(24 * time.Hour) // token expiration, e.g. 24h from now
-	claims := &Claims{
-		Email: user.Email,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "Pullo",
-			Subject:   user.Email,
-		},
-	}
-
-	// Create the JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign the token with your secret key
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		handleError(w, http.StatusInternalServerError, "Could not generate token", err)
-		return
-	}
-
-	// Log successful login
-	logger.WithFields(logrus.Fields{
-		"userID": user.ID,
-		"email":  user.Email,
-	}).Info("User logged in successfully")
-
-	http.SetCookie(w, &http.Cookie{
-		Name:    "JWT",
-		Value:   "Bearer " + tokenString,
-		Expires: expiresAt,
-	})
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "success", "name": user.Name, "email": user.Email})
-}
-
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 1. Extract the "Authorization" header: "Bearer <token>"
-		authCookie, err := r.Cookie("JWT")
-		if err != nil || authCookie.Value == "" {
-			handleError(w, http.StatusUnauthorized, "Missing Authorization cookie", nil)
-			return
-		}
-
-		bearerToken := authCookie.Value
-		parts := strings.Split(bearerToken, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			handleError(w, http.StatusUnauthorized, "Invalid Authorization cookie format", nil)
-			return
-		}
-		tokenString := parts[1]
-
-		// 2. Parse & validate the JWT token
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-			// Ensure the signing method is HMAC
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-			}
-			return jwtKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			handleError(w, http.StatusUnauthorized, "Invalid or expired token", err)
-			fmt.Println("Error:", err)
-			str, err := json.Marshal(token)
-			if err != nil {
-				fmt.Println("Error:", err)
-			}
-			fmt.Println("Token:", string(str))
-			return
-		}
-
-		ctx := NewContext(r.Context(), &claims.Email)
-		// 4. Proceed to the next handler with the updated context
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func signup(w http.ResponseWriter, r *http.Request) {
-	var creds struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Name     string `json:"name"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
-		return
-	}
-
-	collection := db.Database("db").Collection("users")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	_, err := collection.InsertOne(ctx, User{
-		Email:    creds.Email,
-		Name:     creds.Name,
-		Password: creds.Password,
-	})
-	if err != nil {
-		handleError(w, http.StatusInternalServerError, "Error creating user", err)
-		return
-	}
-
-	logger.WithFields(logrus.Fields{
-		"email": creds.Email,
-		"name":  creds.Name,
-	}).Info("User signed up successfully")
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "User signed up successfully"})
-}
-
-// Обработка ошибок
-func handleError(w http.ResponseWriter, statusCode int, message string, err error) {
-	if err != nil {
-		logger.WithError(err).Error(message)
-	} else {
-		logger.Error(message)
-	}
-
-	w.WriteHeader(statusCode)
-	response := map[string]string{"error": message}
-	json.NewEncoder(w).Encode(response)
-}
+// --------------------------------------------------------
+// SNEAKERS
+// --------------------------------------------------------
 
 func getSneakers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	collection := db.Database("OnlineStore").Collection("sneakers")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -528,15 +619,10 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sneakers)
 }
 
-type Sneaker struct {
-	Model string  `json:"model"`
-	Brand string  `json:"brand"`
-	Color string  `json:"color"`
-	Price float64 `json:"price"`
-}
+// --------------------------------------------------------
+// SEND EMAIL
+// --------------------------------------------------------
 
-// sendEmailHandler handles POST requests to /sendEmail
-// Expects JSON with { "to": "...", "subject": "...", "body": "...", "attachment": "..." }
 func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -565,41 +651,67 @@ func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// sendMail uses Gomail to send an email with optional attachment
+// Uses Gomail to send an email with optional attachment
 func sendMail(to, subject, body, attachmentPath string) error {
-	// Sender data.
 	username := os.Getenv("PULLOEMAIL")
 	password := os.Getenv("PULLOEMAIL_PASSWORD")
 
-	// Receiver email address.
-	message := gomail.NewMessage()
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", username)
+	msg.SetHeader("To", to)
+	msg.SetHeader("Subject", subject)
+	msg.SetBody("text/html", body)
 
-	// Set email headers
-	message.SetHeader("From", username)
-	message.SetHeader("To", to)
-	message.SetHeader("Subject", subject)
-
-	// Set email body
-	message.SetBody("text/html", body)
-
-	// Add attachments
-	message.Attach(attachmentPath)
-
-	// Set up the SMTP dialer
-	dialer := gomail.NewDialer(os.Getenv("PULLO_EMAIL_PROVIDER"), 587, username, password)
-
-	// Send the email
-	err := dialer.DialAndSend(message)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"Module": "SendMail",
-			"Action": "dialer.DialAndSend",
-		}).Error(err)
-		return errors.New("Failed to send email: " + err.Error())
+	if attachmentPath != "" {
+		msg.Attach(attachmentPath)
 	}
-	logger.WithFields(logrus.Fields{
-		"to":      to,
-		"subject": subject,
-	}).Info("Email sent successfully")
+
+	dialer := gomail.NewDialer(os.Getenv("PULLO_EMAIL_PROVIDER"), 587, username, password)
+	if err := dialer.DialAndSend(msg); err != nil {
+		logger.WithFields(logrus.Fields{"Module": "SendMail"}).Error(err)
+		return errors.New("failed to send email: " + err.Error())
+	}
+	logger.WithFields(logrus.Fields{"to": to, "subject": subject}).Info("Email sent successfully")
 	return nil
+}
+
+// --------------------------------------------------------
+// ERROR HANDLING
+// --------------------------------------------------------
+
+func handleError(w http.ResponseWriter, statusCode int, message string, err error) {
+	if err != nil {
+		logger.WithError(err).Error(message)
+	} else {
+		logger.Error(message)
+	}
+	w.WriteHeader(statusCode)
+	response := map[string]string{"error": message}
+	json.NewEncoder(w).Encode(response)
+}
+
+// GET /api/user-profile
+func getUserProfileHandler(w http.ResponseWriter, r *http.Request) {
+	email, ok := FromContext(r.Context())
+	if !ok {
+		handleError(w, http.StatusUnauthorized, "Unauthorized access", nil)
+		return
+	}
+
+	collection := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var user User
+	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		handleError(w, http.StatusNotFound, "User not found", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"name":  user.Name,
+		"email": user.Email,
+	})
 }
