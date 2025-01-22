@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -25,6 +26,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/time/rate"
 	gomail "gopkg.in/mail.v2"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
@@ -41,6 +44,7 @@ type User struct {
 	Password          string `json:"password" bson:"password"`
 	Verified          bool   `json:"verified" bson:"verified"`
 	ConfirmationToken string `json:"confirmationToken" bson:"confirmationToken"`
+	Role              string `json:"role" bson:"role"`
 }
 
 // --------------------------------------------------------
@@ -133,6 +137,14 @@ func main() {
 
 	// Apply rate limit middleware
 	r.Use(rateLimitMiddleware)
+
+	// Additional endpoints for admin panel
+	r.Handle("/admin", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/adminPanel.html")
+	})))).Methods(http.MethodGet)
+	r.Handle("/admin", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(createSneaker)))).Methods(http.MethodPost)
+	r.Handle("/admin/{id}", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(updateSneaker)))).Methods(http.MethodPut)
+	r.Handle("/admin/{id}", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(deleteSneaker)))).Methods(http.MethodDelete)
 
 	// Start the server
 	srv := &http.Server{
@@ -234,6 +246,32 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func roleMiddleware(targetRole string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		email, ok := FromContext(r.Context())
+		if !ok {
+			handleError(w, http.StatusBadRequest, "No email in context", errors.New("missing email in context"))
+			return
+		}
+		collection := db.Database("db").Collection("users")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var user User
+		err := collection.FindOne(ctx, bson.M{"email": *email}).Decode(&user)
+		if err != nil {
+			handleError(w, http.StatusBadRequest, "No user with this email", err)
+			return
+		}
+
+		if user.Role != targetRole {
+			handleError(w, http.StatusForbidden, "You do not have permission to access this resource", nil)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // --------------------------------------------------------
 // SIGNUP
 // --------------------------------------------------------
@@ -287,6 +325,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		Name:              creds.Name,
 		Verified:          false,
 		ConfirmationToken: token,
+		Role:              "user",
 	}
 	_, err = collection.InsertOne(ctx, newUser)
 	if err != nil {
@@ -588,7 +627,7 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // --------------------------------------------------------
-// SNEAKERS
+// SNEAKERS (READ-ONLY ENDPOINT)
 // --------------------------------------------------------
 
 func getSneakers(w http.ResponseWriter, r *http.Request) {
@@ -596,11 +635,26 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	pageNum, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		pageNum = 1
+		log.Println("Error getting path variable page:")
+	}
+
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
+	if err != nil {
+		pageSize = 1
+		log.Println("Error getting path variable pageSize:")
+	}
+
+	opts := options.Find().SetLimit(int64(pageSize)).SetSkip(int64(pageSize * (pageNum - 1)))
+
 	collection := db.Database("OnlineStore").Collection("sneakers")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cursor, err := collection.Find(ctx, bson.M{})
+	cursor, err := collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		http.Error(w, "Error fetching sneakers", http.StatusInternalServerError)
 		log.Println("Error fetching sneakers:", err)
@@ -713,5 +767,121 @@ func getUserProfileHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"name":  user.Name,
 		"email": user.Email,
+	})
+}
+
+// -----------------------------------------------------------------------------
+// CRUD OPERATIONS
+// -----------------------------------------------------------------------------
+
+// Sneaker is our data model for the "OnlineStore.sneakers" collection.
+type Sneaker struct {
+	ID    primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Brand string             `json:"brand" bson:"brand"`
+	Model string             `json:"model" bson:"model"`
+	Price int                `json:"price" bson:"price"`
+	Color string             `json:"color" bson:"color"`
+}
+
+// createSneaker handles POST /sneakers to insert a new sneaker doc.
+func createSneaker(w http.ResponseWriter, r *http.Request) {
+	collection := db.Database("OnlineStore").Collection("sneakers")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var s Sneaker
+	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+		http.Error(w, "Invalid request payload for sneaker", http.StatusBadRequest)
+		return
+	}
+	res, err := collection.InsertOne(ctx, s)
+	if err != nil {
+		http.Error(w, "Failed to create sneaker", http.StatusInternalServerError)
+		logger.WithError(err).Error("Insert sneaker error")
+		return
+	}
+	logger.WithField("action", "createSneaker").Info("Sneaker created")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Sneaker created successfully",
+		"id":      res.InsertedID,
+	})
+}
+
+// updateSneaker handles PUT /sneakers/{id} to modify an existing sneaker doc.
+func updateSneaker(w http.ResponseWriter, r *http.Request) {
+	collection := db.Database("OnlineStore").Collection("sneakers")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	vars := mux.Vars(r)
+	idHex := vars["id"]
+	objID, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		http.Error(w, "Invalid ID format", http.StatusBadRequest)
+		return
+	}
+
+	var s Sneaker
+	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+		http.Error(w, "Invalid JSON for sneaker update", http.StatusBadRequest)
+		return
+	}
+
+	filter := bson.M{"_id": objID}
+	update := bson.M{"$set": bson.M{
+		"brand": s.Brand,
+		"model": s.Model,
+		"price": s.Price,
+		"color": s.Color,
+	}}
+	res, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		http.Error(w, "Failed to update sneaker", http.StatusInternalServerError)
+		logger.WithError(err).Error("Update sneaker error")
+		return
+	}
+	if res.MatchedCount == 0 {
+		http.Error(w, "No sneaker found with that ID", http.StatusNotFound)
+		return
+	}
+	logger.WithField("action", "updateSneaker").Info("Sneaker updated")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Sneaker updated successfully",
+	})
+}
+
+// deleteSneaker handles DELETE /sneakers/{id} to remove a sneaker doc.
+func deleteSneaker(w http.ResponseWriter, r *http.Request) {
+	collection := db.Database("OnlineStore").Collection("sneakers")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	vars := mux.Vars(r)
+	idHex := vars["id"]
+	objID, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		http.Error(w, "Invalid ID format", http.StatusBadRequest)
+		return
+	}
+
+	res, err := collection.DeleteOne(ctx, bson.M{"_id": objID})
+	if err != nil {
+		http.Error(w, "Failed to delete sneaker", http.StatusInternalServerError)
+		logger.WithError(err).Error("Delete sneaker error")
+		return
+	}
+	if res.DeletedCount == 0 {
+		http.Error(w, "No sneaker found to delete", http.StatusNotFound)
+		return
+	}
+	logger.WithField("action", "deleteSneaker").Info("Sneaker deleted")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Sneaker deleted successfully",
 	})
 }

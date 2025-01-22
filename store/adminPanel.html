@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sneakers Admin Panel</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rajdhani:300,400,500,600,700">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i">
+  <link rel="stylesheet" href="./public/css/style.css">
+  <link rel="stylesheet" href="./public/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .admin-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h2 {
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    .action-btn {
+      padding: 6px 12px;
+      margin-right: 5px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #fff;
+      background-color: #007bff;
+    }
+    .action-btn.delete {
+      background-color: #dc3545;
+    }
+    .action-btn:hover {
+      opacity: 0.8;
+    }
+    .form-control {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+    .submit-btn {
+      background-color: #db5660;
+      color: #fff;
+      padding: 10px 16px;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .submit-btn:hover {
+      opacity: 0.9;
+    }
+    .pagination {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      justify-content: center;
+    }
+    .pagination button {
+      border: 1px solid #db5660;
+      background-color: #fff;
+      color: #db5660;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .pagination button.active,
+    .pagination button:hover {
+      background-color: #db5660;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+<div class="admin-container">
+  <h1 class="admin-header">Sneakers Admin Panel</h1>
+
+  <!-- TABLE OF SNEAKERS -->
+  <h2>All Sneakers</h2>
+  <table>
+    <thead>
+    <tr>
+      <th>Brand</th>
+      <th>Model</th>
+      <th>Price</th>
+      <th>Color</th>
+      <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody id="sneakers-table"></tbody>
+  </table>
+
+  <!-- PAGINATION -->
+  <div class="pagination" id="pagination-controls">
+    <!-- Dynamically created by JS -->
+  </div>
+
+  <!-- CREATE / UPDATE FORM -->
+  <h2>Create / Update Sneaker</h2>
+  <input type="hidden" id="sneakerId" />
+  <input type="text" id="sneakerBrand" class="form-control" placeholder="Brand">
+  <input type="text" id="sneakerModel" class="form-control" placeholder="Model">
+  <input type="number" id="sneakerPrice" class="form-control" placeholder="Price">
+  <input type="text" id="sneakerColor" class="form-control" placeholder="Color">
+  <button class="submit-btn" onclick="saveSneaker()">Save Sneaker</button>
+</div>
+
+<!-- Minimal JavaScript for CRUD -->
+<script>
+  const pageSize = 5;
+  let currentPage = 1;
+
+  // Simple function for GET/POST/PUT/DELETE
+  async function request(url, options = {}) {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      const msg = await response.text();
+      throw new Error(msg);
+    }
+    return response.json();
+  }
+
+  // Load all sneakers for the given page
+  async function loadSneakers(page = 1) {
+    currentPage = page;
+    try {
+      const data = await request(`/sneakers?page=${page}&pageSize=${pageSize}`);
+      renderSneakers(data);
+      renderPagination(data.length);
+    } catch (err) {
+      console.error("Failed to load sneakers:", err);
+    }
+  }
+
+  function renderSneakers(sneakers) {
+    const tbody = document.getElementById("sneakers-table");
+    tbody.innerHTML = "";
+
+    sneakers.forEach(s => {
+      const id = s._id ? (s._id.$oid || s._id) : "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+          <td>${s.brand || ""}</td>
+          <td>${s.model || ""}</td>
+          <td>${s.price || ""}</td>
+          <td>${s.color || ""}</td>
+          <td>
+            <button class="action-btn" onclick="editSneaker('${id}','${s.brand}','${s.model}','${s.price}','${s.color}')">Edit</button>
+            <button class="action-btn delete" onclick="deleteSneaker('${id}')">Delete</button>
+          </td>
+        `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Minimal pagination: if returned array < pageSize, we disable Next
+  function renderPagination(currentCount) {
+    const container = document.getElementById("pagination-controls");
+    container.innerHTML = "";
+
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "Prev";
+    prevBtn.disabled = currentPage <= 1;
+    prevBtn.onclick = () => loadSneakers(currentPage - 1);
+    container.appendChild(prevBtn);
+
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.disabled = currentCount < pageSize;
+    nextBtn.onclick = () => loadSneakers(currentPage + 1);
+    container.appendChild(nextBtn);
+  }
+
+  function editSneaker(id, brand, model, price, color) {
+    document.getElementById("sneakerId").value = id;
+    document.getElementById("sneakerBrand").value = brand;
+    document.getElementById("sneakerModel").value = model;
+    document.getElementById("sneakerPrice").value = price;
+    document.getElementById("sneakerColor").value = color;
+  }
+
+  async function saveSneaker() {
+    const id = document.getElementById("sneakerId").value;
+    const brand = document.getElementById("sneakerBrand").value;
+    const model = document.getElementById("sneakerModel").value;
+    const price = parseInt(document.getElementById("sneakerPrice").value, 10) || 0;
+    const color = document.getElementById("sneakerColor").value;
+
+    try {
+      if (id) {
+        // Update
+        await request(`/admin/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brand, model, price, color })
+        });
+      } else {
+        // Create
+        await request("/admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brand, model, price, color })
+        });
+      }
+      alert("Sneaker saved successfully");
+      // Clear form
+      document.getElementById("sneakerId").value = "";
+      document.getElementById("sneakerBrand").value = "";
+      document.getElementById("sneakerModel").value = "";
+      document.getElementById("sneakerPrice").value = "";
+      document.getElementById("sneakerColor").value = "";
+      // Reload
+      loadSneakers(currentPage);
+    } catch (err) {
+      console.error("Error saving sneaker:", err);
+      alert("Error saving sneaker: " + err.message);
+    }
+  }
+
+  async function deleteSneaker(id) {
+    if (!confirm("Are you sure you want to delete this sneaker?")) return;
+    try {
+      await request(`/admin/${id}`, { method: "DELETE" });
+      alert("Sneaker deleted successfully");
+      loadSneakers(currentPage);
+    } catch (err) {
+      console.error("Error deleting sneaker:", err);
+      alert("Error deleting sneaker: " + err.message);
+    }
+  }
+
+  // On page load
+  window.addEventListener("DOMContentLoaded", () => {
+    loadSneakers(1);
+  });
+</script>
+</body>
+</html>
