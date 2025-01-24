@@ -94,7 +94,7 @@
    let currentLocation = window.location.hostname;
    document.addEventListener("DOMContentLoaded", async () => {
       try {
-         const response = await fetch("https://" + currentLocation + ":8080/sneakers", {
+         const response = await fetch("https://" + currentLocation + "/sneakers", {
             method: "GET",
             headers: {
                "Authorization": `Bearer ${document.cookie.split('JWT=')[1]}`
@@ -131,7 +131,7 @@
       }
 
       try {
-         const response = await fetch("https://" + currentLocation + ":8080/sneakers", {
+         const response = await fetch("https://" + currentLocation + "/sneakers", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ oldPassword: oldPassword, password: password, confirmPassword: confirmPassword }),

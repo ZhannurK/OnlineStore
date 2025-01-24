@@ -170,7 +170,7 @@
       }
 
       try {
-        const response = await fetch("https://" + currentLocation + ":8080/sneakers", {
+        const response = await fetch("https://" + currentLocation + "/sneakers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
