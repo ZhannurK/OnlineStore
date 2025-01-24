@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lpernett/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -52,11 +51,6 @@ type User struct {
 // --------------------------------------------------------
 
 func init() {
-
-	err := godotenv.Load("./.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
