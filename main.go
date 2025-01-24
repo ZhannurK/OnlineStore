@@ -124,7 +124,7 @@ func main() {
 	r.HandleFunc("/confirm", confirmEmailHandler).Methods(http.MethodGet)
 
 	// Apply rate limit middleware
-	r.Use(rateLimitMiddleware)
+	//r.Use(rateLimitMiddleware)
 
 	// Additional endpoints for admin panel
 	r.Handle("/admin", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
