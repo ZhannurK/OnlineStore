@@ -70,10 +70,8 @@ func init() {
 // --------------------------------------------------------
 func allowCORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		if r.Method == "GET" {
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -82,8 +80,6 @@ func main() {
 	jwtKey = []byte(os.Getenv("JWTSECRET"))
 
 	r := mux.NewRouter()
-
-	r.Use(allowCORSMiddleware)
 
 	// Static file routes
 	r.HandleFunc("/shoes", func(w http.ResponseWriter, r *http.Request) {
@@ -627,6 +623,10 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 
 	pageNum, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
