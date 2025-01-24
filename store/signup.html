@@ -165,7 +165,7 @@
       }
 
       try {
-        const response = await fetch("https://" + currentLocation + "/sneakers", {
+        const response = await fetch("https://" + currentLocation + "/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, email, password }),
