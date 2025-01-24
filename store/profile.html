@@ -92,7 +92,7 @@
 <script>
    document.addEventListener("DOMContentLoaded", async () => {
       try {
-         const response = await fetch("http://localhost:8080/api/user-profile", {
+         const response = await fetch("http://" + currentLocation + ":8080/sneakers", {
             method: "GET",
             headers: {
                "Authorization": `Bearer ${document.cookie.split('JWT=')[1]}`
@@ -129,7 +129,7 @@
       }
 
       try {
-         const response = await fetch("http://localhost:8080/profile", {
+         const response = await fetch("http://" + currentLocation + ":8080/sneakers", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ oldPassword: oldPassword, password: password, confirmPassword: confirmPassword }),

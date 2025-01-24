@@ -81,10 +81,11 @@
     let allSneakers = [];
     let currentPage = 1;
     const itemsPerPage = 5;
+    let currentLocation = window.location.hostname;
   
     async function fetchSneakers() {
       try {
-        const response = await fetch("http://localhost:8080/sneakers");
+        const response = await fetch("http://" + currentLocation + ":8080/sneakers");
         allSneakers = await response.json();
         applyFiltersAndRender();
       } catch (error) {
