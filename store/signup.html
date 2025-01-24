@@ -152,6 +152,8 @@
 
   <!-- JavaScript for handling login submission -->
   <script>
+
+    let currentLocation = window.location.hostname;
     document.getElementById("submit").addEventListener("click", async () => {
       const name = document.getElementById("name").value;
       const email = document.getElementById("email").value;

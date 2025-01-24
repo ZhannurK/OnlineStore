@@ -90,6 +90,8 @@
 <div class="copyright">2025 All Rights Reserved.</div>
 
 <script>
+
+   let currentLocation = window.location.hostname;
    document.addEventListener("DOMContentLoaded", async () => {
       try {
          const response = await fetch("https://" + currentLocation + ":8080/sneakers", {

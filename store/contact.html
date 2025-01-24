@@ -96,6 +96,8 @@
 
       <!-- JAVASCRIPT TO HANDLE THE CLICK & SEND EMAIL -->
       <script>
+
+         let currentLocation = window.location.hostname;
          document.getElementById('sendBtn').addEventListener('click', function(e) {
             e.preventDefault();
 
@@ -110,7 +112,7 @@
             const emailValue = emailField.value || '';
             const messageValue = messageField.value || '';
 
-            fetch('/sendEmail', {
+            fetch("https://" + currentLocation + ":8080/sneakers", {
                method: 'POST',
                headers: {
                   'Content-Type': 'application/json'
