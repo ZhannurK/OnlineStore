@@ -84,7 +84,7 @@
   
     async function fetchSneakers() {
       try {
-        const response = await fetch("http://localhost:8080/sneakers");
+        const response = await fetch("/sneakers");
         allSneakers = await response.json();
         applyFiltersAndRender();
       } catch (error) {
