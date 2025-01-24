@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -52,18 +51,11 @@ type User struct {
 
 func init() {
 
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("Couldn`t open file for logging: %v", err)
-	}
-	logger.SetOutput(file)
-	logger.SetFormatter(&logrus.TextFormatter{})
-
 	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	db, err = mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_CONNECT")))
+	db, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_CONNECT")))
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to connect to MongoDB")
 	}
