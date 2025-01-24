@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/tebeka/selenium"
+	"github.com/tebeka/selenium/chrome"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -71,39 +72,71 @@ func TestGetUsers(t *testing.T) {
 	}
 }
 
-func TestLoginEndpoint(t *testing.T) {
-	// Start the server with the login handler
-	server := httptest.NewServer(http.HandlerFunc(login))
-	defer server.Close()
+func TestLoginEndpointWithSelenium(t *testing.T) {
+	// Start Selenium WebDriver
+	const chromeDriverPath = "./selenium-project/chromedriver-win64/chromedriver.exe"
+	// "./chrome-win64/chromedriver.exe" // Path to ChromeDriver
 
-	// Setup test database with matching credentials
-	mockDB := setupMockDatabase()
-	defer mockDB.Disconnect(context.Background())
-	db = mockDB
-
-	// Test payload
-	payload := `{"email":"test@example.com","password":"password123"}`
-
-	// Send POST request
-	resp, err := http.Post(server.URL+"/login", "application/json", strings.NewReader(payload))
+	// Start ChromeDriver service
+	service, err := selenium.NewChromeDriverService(chromeDriverPath, 4444)
 	if err != nil {
-		t.Fatalf("Failed to send request: %v", err)
+		t.Fatalf("Failed to start ChromeDriver service: %v", err)
 	}
-	defer resp.Body.Close()
+	defer service.Stop()
 
-	// Check the response status code
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+	// Set up Selenium WebDriver with Chrome
+	caps := selenium.Capabilities{"browserName": "chrome"}
+	chromeCaps := chrome.Capabilities{
+		Path: "",
+		Args: []string{
+			"--headless",
+			"--disable-gpu",
+			"--no-sandbox",
+		},
+	}
+	caps.AddChrome(chromeCaps)
+
+	wd, err := selenium.NewRemote(caps, "http://localhost:4444/wd/hub")
+	if err != nil {
+		t.Fatalf("Failed to connect to WebDriver: %v", err)
+	}
+	defer wd.Quit()
+
+	// Navigate to the authorization page
+	if err := wd.Get("http://localhost:8080/login"); err != nil {
+		t.Fatalf("Failed to load authorization page: %v", err)
 	}
 
-	// Parse the response body
-	var response map[string]string
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to parse JSON response: %v", err)
+	// Find and fill email and password fields
+	emailField, err := wd.FindElement(selenium.ByID, "email")
+	if err != nil {
+		t.Fatalf("Failed to find email field: %v", err)
+	}
+	emailField.SendKeys("test@example.com")
+
+	passwordField, err := wd.FindElement(selenium.ByID, "password")
+	if err != nil {
+		t.Fatalf("Failed to find password field: %v", err)
+	}
+	passwordField.SendKeys("password123")
+
+	// Click the login button
+	loginButton, err := wd.FindElement(selenium.ByID, "submit")
+	if err != nil {
+		t.Fatalf("Failed to find login button: %v", err)
+	}
+	loginButton.Click()
+
+	// Wait for and verify the result
+	time.Sleep(3 * time.Second) // Add a short delay for the page to respond
+	alertText, err := wd.AlertText()
+	if err != nil {
+		t.Fatalf("Failed to retrieve alert text: %v", err)
 	}
 
-	if response["status"] != "success" {
-		t.Errorf("Expected status 'success', got '%s'", response["status"])
+	expectedAlert := "Welcome Test User!"
+	if alertText != expectedAlert {
+		t.Errorf("Expected alert '%s', got '%s'", expectedAlert, alertText)
 	}
 }
 
