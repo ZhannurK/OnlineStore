@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lpernett/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
-	"github.com/lpernett/godotenv"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -52,6 +52,12 @@ type User struct {
 // --------------------------------------------------------
 
 func init() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatalf("Couldn`t reach users home directory: %v", err)
@@ -69,7 +75,7 @@ func init() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	db, err = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	db, err = mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_CONNECT")))
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to connect to MongoDB")
 	}
@@ -84,11 +90,7 @@ func init() {
 // --------------------------------------------------------
 
 func main() {
-	// Load environment variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+
 	jwtKey = []byte(os.Getenv("JWTSECRET"))
 
 	r := mux.NewRouter()
