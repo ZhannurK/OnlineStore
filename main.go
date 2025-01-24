@@ -52,12 +52,6 @@ type User struct {
 
 func init() {
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Couldn`t reach users home directory: %v", err)
-	}
-	logFilePath := filepath.Join(homeDir, "Downloads", "server-logs.txt")
-
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("Couldn`t open file for logging: %v", err)
