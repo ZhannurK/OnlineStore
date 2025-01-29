@@ -152,8 +152,6 @@
 
   <!-- JavaScript for handling login submission -->
   <script>
-
-    let currentLocation = window.location.hostname;
     document.getElementById("submit").addEventListener("click", async () => {
       const name = document.getElementById("name").value;
       const email = document.getElementById("email").value;
@@ -165,7 +163,7 @@
       }
 
       try {
-        const response = await fetch("https://" + currentLocation + "/signup", {
+        const response = await fetch("/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, email, password }),

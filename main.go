@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lpernett/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -50,12 +51,20 @@ type User struct {
 // --------------------------------------------------------
 
 func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Set up logger to output to the terminal (stdout)
+	logger.SetOutput(os.Stdout)
+	logger.SetFormatter(&logrus.TextFormatter{})
 
 	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	db, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_CONNECT")))
+	db, err = mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_CONNECT")))
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to connect to MongoDB")
 	}
@@ -68,13 +77,7 @@ func init() {
 // --------------------------------------------------------
 // MAIN
 // --------------------------------------------------------
-func allowCORSMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-		}
-		next.ServeHTTP(w, r)
-	})
-}
+
 func main() {
 
 	jwtKey = []byte(os.Getenv("JWTSECRET"))
@@ -124,7 +127,7 @@ func main() {
 	r.HandleFunc("/confirm", confirmEmailHandler).Methods(http.MethodGet)
 
 	// Apply rate limit middleware
-	//r.Use(rateLimitMiddleware)
+	r.Use(rateLimitMiddleware)
 
 	// Additional endpoints for admin panel
 	r.Handle("/admin", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +149,7 @@ func main() {
 
 	go func() {
 		logger.Info("Starting server on :8080")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.WithError(err).Fatal("Server failed")
 		}
 	}()
@@ -615,7 +618,7 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // --------------------------------------------------------
-// SNEAKERS (READ-ONLY ENDPOINT)
+// SNEAKERS (READ-ONLY ENDPOINT) - FIXED PAGINATION
 // --------------------------------------------------------
 
 func getSneakers(w http.ResponseWriter, r *http.Request) {
@@ -623,24 +626,34 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 
-	pageNum, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil {
-		pageNum = 1
-		log.Println("Error getting path variable page:")
+	// Grab query params
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("pageSize")
+
+	// Default values
+	pageNum := 1
+	pageSize := 5 // set a more reasonable default, e.g. 5
+
+	// Parse page
+	if pageStr != "" {
+		if val, err := strconv.Atoi(pageStr); err == nil && val > 0 {
+			pageNum = val
+		}
 	}
 
-	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
-	if err != nil {
-		pageSize = 1
-		log.Println("Error getting path variable pageSize:")
+	// Parse pageSize
+	if pageSizeStr != "" {
+		if val, err := strconv.Atoi(pageSizeStr); err == nil && val > 0 {
+			pageSize = val
+		}
 	}
 
-	opts := options.Find().SetLimit(int64(pageSize)).SetSkip(int64(pageSize * (pageNum - 1)))
+	// Build skip/limit
+	skip := int64((pageNum - 1) * pageSize)
+	limit := int64(pageSize)
+
+	opts := options.Find().SetSkip(skip).SetLimit(limit)
 
 	collection := db.Database("OnlineStore").Collection("sneakers")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -655,7 +668,7 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 	defer cursor.Close(ctx)
 
 	var sneakers []bson.M
-	if err = cursor.All(ctx, &sneakers); err != nil {
+	if err := cursor.All(ctx, &sneakers); err != nil {
 		http.Error(w, "Error parsing sneakers", http.StatusInternalServerError)
 		log.Println("Error parsing sneakers:", err)
 		return

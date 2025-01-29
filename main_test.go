@@ -103,7 +103,7 @@ func TestLoginEndpointWithSelenium(t *testing.T) {
 	defer wd.Quit()
 
 	// Navigate to the authorization page
-	if err := wd.Get("http://localhost:8080/login"); err != nil {
+	if err := wd.Get("/login"); err != nil {
 		t.Fatalf("Failed to load authorization page: %v", err)
 	}
 
