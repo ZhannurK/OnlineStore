@@ -1,163 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
-   <head>
-      <meta charset="utf-8">
-      <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-      <title>Shoes</title>
-      <meta name="keywords" content="">
-      <meta name="description" content="">
-      <meta name="author" content="">
-      <link rel="stylesheet" href="./public/css/bootstrap.min.css">
-      <link rel="stylesheet" href="./public/css/style.css">
-
-   </head>
-   <!-- body -->
-   <body class="main-layout">
-	<!-- header section start -->
-	<div class="header_section header_main">
-		<div class="container">
-			<div class="row">
-				<div class="col-sm-3">
-					<div class="logo"><a href="#"><img src="/public/images/logo.png"></a></div>
-				</div>
-				<div class="col-sm-9">
-					<nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
-              <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-              <div class="navbar-nav">
-                <a class="nav-item nav-link" href="/">Home</a>
-                <a class="nac-item nav-link" href="/contact">Contact</a>
-                <a class="nav-item nav-link" href="/profile">Profile</a>
-              </div>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+    <title>Shoes</title>
+    <link rel="stylesheet" href="./public/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./public/css/style.css" />
+</head>
+<body class="main-layout">
+<!-- header section -->
+<div class="header_section header_main">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="logo">
+                    <a href="#"><img src="/public/images/logo.png" /></a>
+                </div>
             </div>
-          </nav>
-				</div>
-			</div>
-		</div>
-	</div>
-	<!-- New Arrivals section start -->
-  <div class="collection_text">Shoes</div>
-  <div class="filters">
-  <select id="brand-filter" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-black focus:outline-none">
-   <option value="">All Brands</option>
-   <option value="Nike">Nike</option>
-   <option value="Adidas">Adidas</option>
-   <option value="Converse">Converse</option>
-   <option value="Vans">Vans</option>
- </select>
- 
- <select id="color-filter" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-black focus:outline-none">
-   <option value="">All Colors</option>
-   <option value="White">White</option>
-   <option value="Red">Red</option>
-   <option value="Black">Black</option>
-   <option value="Green">Green</option>
-   <option value="Navy">Navy</option>
- </select>
- </div>
+            <div class="col-sm-9">
+                <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                    <button
+                            class="navbar-toggler"
+                            type="button"
+                            data-toggle="collapse"
+                            data-target="#navbarNavAltMarkup"
+                            aria-controls="navbarNavAltMarkup"
+                            aria-expanded="false"
+                            aria-label="Toggle navigation"
+                    >
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                        <div class="navbar-nav">
+                            <a class="nav-item nav-link" href="/">Home</a>
+                            <a class="nav-item nav-link" href="/contact">Contact</a>
+                            <a class="nav-item nav-link" href="/profile">Profile</a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
 
- <select id="sort-filter">
-   <option value="">Sort by</option>
-   <option value="price-asc">Price: Low to High</option>
-   <option value="price-desc">Price: High to Low</option>
-</select>
+<!-- Title / filters -->
+<div class="collection_text">Shoes</div>
+<div class="filters">
+    <select id="brand-filter" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-black focus:outline-none">
+        <option value="">All Brands</option>
+        <option value="Nike">Nike</option>
+        <option value="Adidas">Adidas</option>
+        <option value="Converse">Converse</option>
+        <option value="Vans">Vans</option>
+    </select>
+
+    <select id="color-filter" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-black focus:outline-none">
+        <option value="">All Colors</option>
+        <option value="White">White</option>
+        <option value="Red">Red</option>
+        <option value="Black">Black</option>
+        <option value="Green">Green</option>
+        <option value="Navy">Navy</option>
+    </select>
+
+    <select id="sort-filter">
+        <option value="">Sort by</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="price-desc">Price: High to Low</option>
+    </select>
+</div>
+
 <div id="pagination" class="pagination"></div>
 
+<section id="sneakers-list">
+    <h1>Sneakers</h1>
+    <div id="sneakers-container"></div>
+</section>
 
-  <section id="sneakers-list">
-   <h1>Sneakers</h1>
-   <div id="sneakers-container"></div>
- </section>
+<div class="copyright">2025 All Rights Reserved.</div>
 
-	<div class="copyright">2025 All Rights Reserved.</div>
-
-   </body>
-
-   <script>
+<script>
     let allSneakers = [];
     let currentPage = 1;
     const itemsPerPage = 5;
-  
+
+    // Fetch sneakers from server
     async function fetchSneakers() {
-      try {
-        const response = await fetch("/sneakers");
-        allSneakers = await response.json();
-        applyFiltersAndRender();
-      } catch (error) {
-        console.error("Error fetching sneakers:", error);
-      }
+        try {
+            // Query string with page and pageSize
+            const response = await fetch(
+                "/sneakers?page=" + currentPage + "&pageSize=" + itemsPerPage
+            );
+            const data = await response.json();
+
+            allSneakers = data;
+            applyFiltersAndRender();
+        } catch (error) {
+            console.error("Error fetching sneakers:", error);
+        }
     }
-  
+
+    // Apply brand/color filters + sorting
     function applyFiltersAndRender() {
-      const brand = document.getElementById("brand-filter").value;
-      const color = document.getElementById("color-filter").value;
-      const sortOption = document.getElementById("sort-filter").value;
-  
-      let filtered = allSneakers.filter(s =>
-        (!brand || s.brand === brand) &&
-        (!color || s.color === color)
-      );
-  
-      if (sortOption === "price-asc") {
-        filtered.sort((a, b) => a.price - b.price);
-      } else if (sortOption === "price-desc") {
-        filtered.sort((a, b) => b.price - a.price);
-      }
-  
-      renderSneakers(filtered, currentPage, itemsPerPage);
-      setupPagination(filtered.length, itemsPerPage);
+        const brand = document.getElementById("brand-filter").value;
+        const color = document.getElementById("color-filter").value;
+        const sortOption = document.getElementById("sort-filter").value;
+
+        let filtered = allSneakers.filter(
+            (s) => (!brand || s.brand === brand) && (!color || s.color === color)
+        );
+
+        if (sortOption === "price-asc") {
+            filtered.sort((a, b) => a.price - b.price);
+        } else if (sortOption === "price-desc") {
+            filtered.sort((a, b) => b.price - a.price);
+        }
+
+        renderSneakers(filtered);
     }
-  
-    function renderSneakers(sneakers, page, limit) {
-      const container = document.getElementById("sneakers-container");
-      container.innerHTML = "";
-  
-      const start = (page - 1) * limit;
-      const end = start + limit;
-      const paginated = sneakers.slice(start, end);
-  
-      paginated.forEach(s => {
-        const card = document.createElement("div");
-        card.className = "sneaker-card";
-        card.innerHTML = `
-          <h2>${s.model}</h2>
-          <p>Brand: ${s.brand}</p>
-          <p>Color: ${s.color}</p>
-          <p>Price: $${s.price}</p>
-        `;
-        container.appendChild(card);
-      });
-    }
-  
-    function setupPagination(totalItems, limit) {
-      const paginationContainer = document.getElementById("pagination");
-      paginationContainer.innerHTML = "";
-      const totalPages = Math.ceil(totalItems / limit);
-  
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement("button");
-        btn.textContent = i;
-        btn.className = "pagination-btn";
-        btn.addEventListener("click", () => {
-          currentPage = i;
-          applyFiltersAndRender(); // important to call the filter pipeline
+
+    // Render the current subset
+    function renderSneakers(sneakers) {
+        const container = document.getElementById("sneakers-container");
+        container.innerHTML = "";
+
+        sneakers.forEach((s) => {
+            const card = document.createElement("div");
+            card.className = "sneaker-card";
+            card.innerHTML = `
+            <h2>${s.model}</h2>
+            <p>Brand: ${s.brand}</p>
+            <p>Color: ${s.color}</p>
+            <p>Price: $${s.price}</p>
+          `;
+            container.appendChild(card);
         });
-        paginationContainer.appendChild(btn);
-      }
     }
-  
+
+    // Basic client-side pagination UI
+    function setupPagination(totalPages) {
+        const paginationContainer = document.getElementById("pagination");
+        paginationContainer.innerHTML = "";
+
+        // Prev
+        {
+            const btn = document.createElement("button");
+            btn.textContent = "<";
+            btn.className = "pagination-btn";
+            btn.addEventListener("click", () => {
+                if (currentPage > 1) {
+                    currentPage -= 1;
+                    fetchSneakers();
+                }
+            });
+            paginationContainer.appendChild(btn);
+        }
+
+        // Numbered pages
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.textContent = i;
+            btn.className = "pagination-btn";
+            btn.addEventListener("click", () => {
+                currentPage = i;
+                fetchSneakers();
+            });
+            paginationContainer.appendChild(btn);
+        }
+
+        // Next
+        {
+            const btn = document.createElement("button");
+            btn.textContent = ">";
+            btn.className = "pagination-btn";
+            btn.addEventListener("click", () => {
+                currentPage += 1;
+                fetchSneakers();
+            });
+            paginationContainer.appendChild(btn);
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
-      fetchSneakers();
-  
-      // Hook up filters
-      document.getElementById("brand-filter").addEventListener("change", applyFiltersAndRender);
-      document.getElementById("color-filter").addEventListener("change", applyFiltersAndRender);
-      document.getElementById("sort-filter").addEventListener("change", applyFiltersAndRender);
+        const totalPages = 7;
+
+        setupPagination(totalPages);
+
+        // Initially fetch page=1
+        fetchSneakers();
+
+        // Hook up filters
+        document.getElementById("brand-filter").addEventListener("change", applyFiltersAndRender);
+        document.getElementById("color-filter").addEventListener("change", applyFiltersAndRender);
+        document.getElementById("sort-filter").addEventListener("change", applyFiltersAndRender);
     });
-  </script>
-  
+</script>
+</body>
 </html>

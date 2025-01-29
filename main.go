@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -52,23 +51,13 @@ type User struct {
 // --------------------------------------------------------
 
 func init() {
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Couldn`t reach users home directory: %v", err)
-	}
-	logFilePath := filepath.Join(homeDir, "Downloads", "server-logs.txt")
-
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("Couldn`t open file for logging: %v", err)
-	}
-	logger.SetOutput(file)
+	// Set up logger to output to the terminal (stdout)
+	logger.SetOutput(os.Stdout)
 	logger.SetFormatter(&logrus.TextFormatter{})
 
 	// Connect to MongoDB
@@ -160,7 +149,7 @@ func main() {
 
 	go func() {
 		logger.Info("Starting server on :8080")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.WithError(err).Fatal("Server failed")
 		}
 	}()
@@ -629,7 +618,7 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // --------------------------------------------------------
-// SNEAKERS (READ-ONLY ENDPOINT)
+// SNEAKERS (READ-ONLY ENDPOINT) - FIXED PAGINATION
 // --------------------------------------------------------
 
 func getSneakers(w http.ResponseWriter, r *http.Request) {
@@ -638,19 +627,33 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pageNum, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil {
-		pageNum = 1
-		log.Println("Error getting path variable page:")
+	// Grab query params
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("pageSize")
+
+	// Default values
+	pageNum := 1
+	pageSize := 5 // set a more reasonable default, e.g. 5
+
+	// Parse page
+	if pageStr != "" {
+		if val, err := strconv.Atoi(pageStr); err == nil && val > 0 {
+			pageNum = val
+		}
 	}
 
-	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
-	if err != nil {
-		pageSize = 1
-		log.Println("Error getting path variable pageSize:")
+	// Parse pageSize
+	if pageSizeStr != "" {
+		if val, err := strconv.Atoi(pageSizeStr); err == nil && val > 0 {
+			pageSize = val
+		}
 	}
 
-	opts := options.Find().SetLimit(int64(pageSize)).SetSkip(int64(pageSize * (pageNum - 1)))
+	// Build skip/limit
+	skip := int64((pageNum - 1) * pageSize)
+	limit := int64(pageSize)
+
+	opts := options.Find().SetSkip(skip).SetLimit(limit)
 
 	collection := db.Database("OnlineStore").Collection("sneakers")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -665,7 +668,7 @@ func getSneakers(w http.ResponseWriter, r *http.Request) {
 	defer cursor.Close(ctx)
 
 	var sneakers []bson.M
-	if err = cursor.All(ctx, &sneakers); err != nil {
+	if err := cursor.All(ctx, &sneakers); err != nil {
 		http.Error(w, "Error parsing sneakers", http.StatusInternalServerError)
 		log.Println("Error parsing sneakers:", err)
 		return
