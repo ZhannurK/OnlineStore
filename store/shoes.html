@@ -7,6 +7,7 @@
     <title>Shoes</title>
     <link rel="stylesheet" href="./public/css/bootstrap.min.css" />
     <link rel="stylesheet" href="./public/css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="main-layout">
 <!-- header section -->
@@ -15,7 +16,7 @@
         <div class="row">
             <div class="col-sm-3">
                 <div class="logo">
-                    <a href="#"><img src="/public/images/logo.png" /></a>
+                    <a href="#"> <img src="/public/images/logo.png"/> </a>
                 </div>
             </div>
             <div class="col-sm-9">
@@ -36,6 +37,10 @@
                             <a class="nav-item nav-link" href="/">Home</a>
                             <a class="nav-item nav-link" href="/contact">Contact</a>
                             <a class="nav-item nav-link" href="/profile">Profile</a>
+                            <a class="nav-item nav-link" href="/cart">Cart
+                                <i class="fas fa-shopping-cart"></i>
+                                <span id="cart-count">0</span>
+                            </a>
                         </div>
                     </div>
                 </nav>
@@ -195,6 +200,55 @@
         document.getElementById("color-filter").addEventListener("change", applyFiltersAndRender);
         document.getElementById("sort-filter").addEventListener("change", applyFiltersAndRender);
     });
+
+    function renderSneakers(sneakers) {
+        const container = document.getElementById("sneakers-container");
+        container.innerHTML = "";
+
+        sneakers.forEach((s) => {
+            const card = document.createElement("div");
+            card.className = "sneaker-card";
+
+            // Add a "bucket"/cart icon (Font Awesome) with click event:
+            card.innerHTML = `
+            <h2>${s.model}</h2>
+            <p>Brand: ${s.brand}</p>
+            <p>Color: ${s.color}</p>
+            <p>Price: $${s.price}</p>
+            <button class="add-to-cart" data-sneaker-id="${s._id}">
+              <i class="fas fa-shopping-basket"></i> Add to Cart
+            </button>
+        `;
+
+            container.appendChild(card);
+        });
+
+        // Attach event listener for each "Add to Cart" button
+        document.querySelectorAll(".add-to-cart").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                const sneakerId = e.currentTarget.getAttribute("data-sneaker-id");
+                try {
+                    const resp = await fetch("/api/cart", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ sneakerId, quantity: 1 }), // default quantity = 1
+                    });
+                    if (!resp.ok) {
+                        const errData = await resp.json();
+                        alert("Error adding to cart: " + errData.error);
+                        return;
+                    }
+                    const data = await resp.json();
+                    alert(data.message);
+                } catch (err) {
+                    console.error("Add to cart error:", err);
+                }
+            });
+        });
+    }
+
 </script>
 </body>
 </html>

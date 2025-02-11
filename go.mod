@@ -5,8 +5,10 @@ go 1.23
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/gorilla/mux v1.8.1
+	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/lpernett/godotenv v0.0.0-20230527005122-0de1d4c5ef5e
 	github.com/sirupsen/logrus v1.9.3
+	github.com/tebeka/selenium v0.9.9
 	go.mongodb.org/mongo-driver v1.17.1
 	golang.org/x/time v0.9.0
 	gopkg.in/mail.v2 v2.3.1
@@ -18,7 +20,6 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/tebeka/selenium v0.9.9 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect

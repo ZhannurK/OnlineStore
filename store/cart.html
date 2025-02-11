@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>My Cart</title>
+    <link rel="stylesheet" href="./public/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./public/css/style.css" />
+    <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+    />
+</head>
+<body>
+<div class="header_section header_main">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="logo">
+                    <a href="/"><img src="/public/images/logo.png" /></a>
+                </div>
+            </div>
+            <div class="col-sm-9">
+                <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                    <button
+                            class="navbar-toggler"
+                            type="button"
+                            data-toggle="collapse"
+                            data-target="#navbarNavAltMarkup"
+                            aria-controls="navbarNavAltMarkup"
+                            aria-expanded="false"
+                            aria-label="Toggle navigation"
+                    >
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                        <div class="navbar-nav">
+                            <a class="nav-item nav-link" href="/">Home</a>
+                            <a class="nav-item nav-link" href="/contact">Contact</a>
+                            <a class="nav-item nav-link" href="/profile">Profile</a>
+                            <a class="nav-item nav-link" href="/shoes">Shoes</a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h1 class="collection_text" style="margin-top:30px;text-align:center;">My Cart</h1>
+
+<div class="container mt-4">
+    <div id="cart-items"></div>
+    <h3 id="total-price"></h3>
+</div>
+
+<script>
+    async function loadCart() {
+        try {
+            const resp = await fetch("/api/cart");
+            if (!resp.ok) {
+                // Possibly user not authenticated or an error occurred
+                const errData = await resp.json();
+                alert("Error loading cart: " + errData.error);
+                return;
+            }
+            const cartItems = await resp.json(); // array of items
+            renderCart(cartItems);
+        } catch (err) {
+            console.error("Cart load error:", err);
+        }
+    }
+
+    function renderCart(cartItems) {
+        const container = document.getElementById("cart-items");
+        container.innerHTML = "";
+
+        if (!cartItems || cartItems.length === 0) {
+            container.innerHTML = "<p>Your cart is empty.</p>";
+            document.getElementById("total-price").textContent = "";
+            return;
+        }
+
+        let total = 0;
+        cartItems.forEach(item => {
+            const itemDiv = document.createElement("div");
+            itemDiv.classList.add("card", "mb-3");
+            itemDiv.innerHTML = `
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">${item.brand} - ${item.model}</h5>
+                        <p class="card-text">Color: ${item.color}</p>
+                        <p class="card-text">Price: $${item.price}</p>
+                        <p class="card-text">Quantity: ${item.quantity}</p>
+                    </div>
+                    <button class="btn btn-danger remove-button" data-id="${item.sneakerId}">
+                        <i class="fas fa-trash-alt"></i> Remove
+                    </button>
+                </div>
+            `;
+            total += item.price * item.quantity;
+            container.appendChild(itemDiv);
+        });
+
+        // Display the total
+        document.getElementById("total-price").textContent = "Total: $" + total;
+
+        // Add a "Proceed to Payment" or "Pay Now" button
+        const payButton = document.createElement("button");
+        payButton.textContent = "Pay Now";
+        payButton.className = "btn btn-success";
+        payButton.style.marginTop = "10px";
+        payButton.addEventListener("click", doCheckout);
+        container.appendChild(payButton);
+
+        // Attach remove item handlers
+        document.querySelectorAll(".remove-button").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                const sneakerId = e.currentTarget.getAttribute("data-id");
+                try {
+                    const resp = await fetch("/api/cart/" + sneakerId, { method: "DELETE" });
+                    if (!resp.ok) {
+                        const errData = await resp.json();
+                        alert("Error removing item: " + errData.error);
+                        return;
+                    }
+                    const data = await resp.json();
+                    alert(data.message);
+                    // Reload cart
+                    loadCart();
+                } catch (err) {
+                    console.error("Remove item error:", err);
+                }
+            });
+        });
+    }
+
+    async function doCheckout() {
+        try {
+            // This endpoint should create a transaction, call your microservice, etc.
+            const resp = await fetch("/api/checkout", { method: "POST" });
+            if (!resp.ok) {
+                const errData = await resp.json();
+                alert("Checkout error: " + errData.error);
+                return;
+            }
+            const data = await resp.json();
+
+            if (data.success) {
+                alert("Payment successful! Transaction ID: " + data.transactionId);
+                // Optionally reload cart page or redirect
+                location.reload();
+            } else {
+                alert("Payment failed or declined. " + (data.message || ""));
+            }
+        } catch (err) {
+            console.error("Checkout request error:", err);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadCart);
+</script>
+
+<div class="copyright" style="margin-top:30px;">2025 All Rights Reserved.</div>
+</body>
+</html>

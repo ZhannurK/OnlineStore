@@ -36,6 +36,11 @@ var (
 	jwtKey  []byte
 )
 
+type CartItem struct {
+	SneakerID primitive.ObjectID `json:"sneakerId" bson:"sneakerId"`
+	Quantity  int                `json:"quantity" bson:"quantity"`
+}
+
 type User struct {
 	ID                string `json:"id" bson:"_id,omitempty"`
 	Email             string `json:"email" bson:"email"`
@@ -44,6 +49,28 @@ type User struct {
 	Verified          bool   `json:"verified" bson:"verified"`
 	ConfirmationToken string `json:"confirmationToken" bson:"confirmationToken"`
 	Role              string `json:"role" bson:"role"`
+
+	Cart []CartItem `json:"cart" bson:"cart"`
+}
+
+type TransactionStatus string
+
+const (
+	StatusPending   TransactionStatus = "Pending Payment"
+	StatusPaid      TransactionStatus = "Paid"
+	StatusDeclined  TransactionStatus = "Declined"
+	StatusCompleted TransactionStatus = "Completed"
+)
+
+type Transaction struct {
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	TransactionID string             `bson:"transactionId" json:"transactionId"` // For cross-reference
+	UserID        string             `bson:"userId"        json:"userId"`
+	CartItems     []CartItem         `bson:"cartItems"     json:"cartItems"`
+	TotalAmount   float64            `bson:"totalAmount"   json:"totalAmount"`
+	Status        TransactionStatus  `bson:"status"        json:"status"`
+	CreatedAt     time.Time          `bson:"createdAt"     json:"createdAt"`
+	UpdatedAt     time.Time          `bson:"updatedAt"     json:"updatedAt"`
 }
 
 // --------------------------------------------------------
@@ -136,6 +163,16 @@ func main() {
 	r.Handle("/admin", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(createSneaker)))).Methods(http.MethodPost)
 	r.Handle("/admin/{id}", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(updateSneaker)))).Methods(http.MethodPut)
 	r.Handle("/admin/{id}", AuthMiddleware(roleMiddleware("admin", http.HandlerFunc(deleteSneaker)))).Methods(http.MethodDelete)
+
+	r.HandleFunc("/cart", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/cart.html")
+	}).Methods(http.MethodGet)
+
+	r.Handle("/api/cart", AuthMiddleware(http.HandlerFunc(addToCartHandler))).Methods(http.MethodPost)
+	r.Handle("/api/cart", AuthMiddleware(http.HandlerFunc(getCartHandler))).Methods(http.MethodGet)
+	r.Handle("/api/cart/{sneakerId}", AuthMiddleware(http.HandlerFunc(removeFromCartHandler))).Methods(http.MethodDelete)
+
+	r.Handle("/api/checkout", AuthMiddleware(http.HandlerFunc(checkoutHandler))).Methods(http.MethodPost)
 
 	// Start the server
 	srv := &http.Server{
@@ -888,5 +925,286 @@ func deleteSneaker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Sneaker deleted successfully",
+	})
+}
+
+func addToCartHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. Parse input JSON: { "sneakerId": "<hexId>", "quantity": 1 }
+	var req struct {
+		SneakerID string `json:"sneakerId"`
+		Quantity  int    `json:"quantity"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+	defer r.Body.Close()
+
+	// 2. Validate quantity
+	if req.Quantity < 1 {
+		req.Quantity = 1
+	}
+
+	// 3. Convert string ID -> ObjectID
+	objID, err := primitive.ObjectIDFromHex(req.SneakerID)
+	if err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid sneakerId format", err)
+		return
+	}
+
+	// 4. Get user from context
+	email, ok := FromContext(r.Context())
+	if !ok {
+		handleError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	// 5. Load user
+	userCol := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var user User
+	if err := userCol.FindOne(ctx, bson.M{"email": *email}).Decode(&user); err != nil {
+		handleError(w, http.StatusNotFound, "User not found", err)
+		return
+	}
+
+	// 6. Check if the item is already in the cart
+	found := false
+	for i, item := range user.Cart {
+		if item.SneakerID == objID {
+			// increment
+			user.Cart[i].Quantity += req.Quantity
+			found = true
+			break
+		}
+	}
+	// If not found, append a new item
+	if !found {
+		user.Cart = append(user.Cart, CartItem{
+			SneakerID: objID,
+			Quantity:  req.Quantity,
+		})
+	}
+
+	// 7. Update user
+	filter := bson.M{"email": user.Email}
+	update := bson.M{"$set": bson.M{"cart": user.Cart}}
+	if _, err := userCol.UpdateOne(ctx, filter, update); err != nil {
+		handleError(w, http.StatusInternalServerError, "Failed to update cart", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Item added to cart successfully",
+	})
+}
+
+func getCartHandler(w http.ResponseWriter, r *http.Request) {
+	email, ok := FromContext(r.Context())
+	if !ok {
+		handleError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	userCol := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var user User
+	if err := userCol.FindOne(ctx, bson.M{"email": *email}).Decode(&user); err != nil {
+		handleError(w, http.StatusNotFound, "User not found", err)
+		return
+	}
+
+	// Optional: also fetch sneaker details for each cart item
+	// by joining with "sneakers" collection. For example:
+	sneakersCol := db.Database("OnlineStore").Collection("sneakers")
+	var cartItems []bson.M
+	for _, cartItem := range user.Cart {
+		var sneaker Sneaker
+		err := sneakersCol.FindOne(ctx, bson.M{"_id": cartItem.SneakerID}).Decode(&sneaker)
+		if err == nil {
+			cartItems = append(cartItems, bson.M{
+				"sneakerId": cartItem.SneakerID,
+				"quantity":  cartItem.Quantity,
+				"brand":     sneaker.Brand,
+				"model":     sneaker.Model,
+				"price":     sneaker.Price,
+				"color":     sneaker.Color,
+			})
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(cartItems)
+}
+
+func removeFromCartHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idHex := vars["sneakerId"]
+
+	sneakerID, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		handleError(w, http.StatusBadRequest, "Invalid ID format", err)
+		return
+	}
+
+	email, ok := FromContext(r.Context())
+	if !ok {
+		handleError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	userCol := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var user User
+	if err := userCol.FindOne(ctx, bson.M{"email": *email}).Decode(&user); err != nil {
+		handleError(w, http.StatusNotFound, "User not found", err)
+		return
+	}
+
+	// Filter out the item from the slice
+	newCart := make([]CartItem, 0, len(user.Cart))
+	for _, item := range user.Cart {
+		if item.SneakerID != sneakerID {
+			newCart = append(newCart, item)
+		}
+	}
+	user.Cart = newCart
+
+	if _, err := userCol.UpdateOne(ctx, bson.M{"email": user.Email},
+		bson.M{"$set": bson.M{"cart": user.Cart}}); err != nil {
+		handleError(w, http.StatusInternalServerError, "Failed to remove item", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Item removed from cart",
+	})
+}
+
+func checkoutHandler(w http.ResponseWriter, r *http.Request) {
+	email, ok := FromContext(r.Context())
+	if !ok {
+		handleError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	// 1) Get user
+	userCol := db.Database("db").Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var user User
+	if err := userCol.FindOne(ctx, bson.M{"email": *email}).Decode(&user); err != nil {
+		handleError(w, http.StatusNotFound, "User not found", err)
+		return
+	}
+
+	// If cart is empty, handle that scenario
+	if len(user.Cart) == 0 {
+		handleError(w, http.StatusBadRequest, "Cart is empty", nil)
+		return
+	}
+
+	// 2) Calculate total based on user.Cart
+	sneakersCol := db.Database("OnlineStore").Collection("sneakers")
+	var total float64
+	for _, ci := range user.Cart {
+		var sneaker Sneaker
+		if err := sneakersCol.FindOne(ctx, bson.M{"_id": ci.SneakerID}).Decode(&sneaker); err == nil {
+			total += float64(sneaker.Price) * float64(ci.Quantity)
+		}
+	}
+
+	// 3) Create transaction in a new "transactions" collection
+	txCollection := db.Database("OnlineStore").Collection("transactions")
+	transactionID := primitive.NewObjectID().Hex() // or some other unique string
+	newTx := Transaction{
+		TransactionID: transactionID,
+		UserID:        user.ID,
+		CartItems:     user.Cart,
+		TotalAmount:   total,
+		Status:        StatusPending, // "Pending Payment"
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	res, err := txCollection.InsertOne(ctx, newTx)
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Failed to create transaction", err)
+		return
+	}
+
+	// 4) Prepare the data to send to microservice
+	payload := map[string]interface{}{
+		"transactionId": transactionID,
+		"cartItems":     user.Cart, // same shape you used in microservice
+		"customer": map[string]interface{}{
+			"id":    user.ID,
+			"name":  user.Name,
+			"email": user.Email,
+		},
+		"totalAmount": total,
+	}
+	payloadBytes, _ := json.Marshal(payload)
+
+	// 5) POST to your payment microservice
+	microserviceURL := "http://localhost:8081/payment"
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(microserviceURL, "application/json", strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, "Payment service error", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// 6) Parse microservice response
+	var microResp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&microResp); err != nil {
+		handleError(w, http.StatusInternalServerError, "Invalid microservice response", err)
+		return
+	}
+
+	// 7) Update transaction based on success/failure
+	newStatus := StatusDeclined
+	if microResp.Success {
+		newStatus = StatusPaid
+	}
+
+	filter := bson.M{"_id": res.InsertedID}
+	update := bson.M{
+		"$set": bson.M{
+			"status":    newStatus,
+			"updatedAt": time.Now(),
+		},
+	}
+	if _, err := txCollection.UpdateOne(ctx, filter, update); err != nil {
+		handleError(w, http.StatusInternalServerError, "Failed to update transaction status", err)
+		return
+	}
+
+	// 8) Optionally clear user’s cart on successful payment
+	if microResp.Success {
+		if _, err := userCol.UpdateOne(ctx, bson.M{"email": user.Email}, bson.M{"$set": bson.M{"cart": []CartItem{}}}); err != nil {
+			logger.Error("Failed to clear cart after payment: ", err)
+		}
+	}
+
+	// 9) Respond to front-end
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"transactionId": transactionID,
+		"message":       microResp.Message,
+		"success":       microResp.Success,
 	})
 }
