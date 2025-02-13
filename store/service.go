@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	gomail "gopkg.in/mail.v2"
 	"io"
 	"log"
 	"net/http"
@@ -23,17 +21,21 @@ import (
 	"github.com/jung-kurt/gofpdf"
 	"github.com/lpernett/godotenv"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	gomail "gopkg.in/mail.v2"
 )
 
-// ------------------------------------------------------------------------
-// MODELS
-// ------------------------------------------------------------------------
+var (
+	db           *mongo.Client
+	logger       = logrus.New()
+	dbCollection *mongo.Collection
+)
 
 type PaymentRequest struct {
 	TransactionID string      `json:"transactionId"`
-	CartItems     interface{} `json:"cartItems"` // could be []Item or similar
+	CartItems     interface{} `json:"cartItems"`
 	Customer      Customer    `json:"customer"`
 	TotalAmount   float64     `json:"totalAmount"`
 }
@@ -72,25 +74,17 @@ type CartItem struct {
 }
 
 type User struct {
-	ID                string `json:"id" bson:"_id,omitempty"`
-	Email             string `json:"email" bson:"email"`
-	Name              string `json:"name" bson:"name"`
-	Password          string `json:"password" bson:"password"`
-	Verified          bool   `json:"verified" bson:"verified"`
-	ConfirmationToken string `json:"confirmationToken" bson:"confirmationToken"`
-	Role              string `json:"role" bson:"role"`
-
-	Cart []CartItem `json:"cart" bson:"cart"`
+	ID                string     `json:"id" bson:"_id,omitempty"`
+	Email             string     `json:"email" bson:"email"`
+	Name              string     `json:"name" bson:"name"`
+	Password          string     `json:"password" bson:"password"`
+	Verified          bool       `json:"verified" bson:"verified"`
+	ConfirmationToken string     `json:"confirmationToken" bson:"confirmationToken"`
+	Role              string     `json:"role" bson:"role"`
+	Cart              []CartItem `json:"cart" bson:"cart"`
 }
 
 type TransactionStatus string
-
-const (
-	StatusPending   TransactionStatus = "Pending Payment"
-	StatusPaid      TransactionStatus = "Paid"
-	StatusDeclined  TransactionStatus = "Declined"
-	StatusCompleted TransactionStatus = "Completed"
-)
 
 type Transaction struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
@@ -103,21 +97,7 @@ type Transaction struct {
 	UpdatedAt     time.Time          `bson:"updatedAt"     json:"updatedAt"`
 }
 
-// ------------------------------------------------------------------------
-// GLOBALS
-// ------------------------------------------------------------------------
-
-var (
-	db           *mongo.Client
-	logger       = logrus.New()
-	dbCollection *mongo.Collection
-)
-
-// ------------------------------------------------------------------------
-// MAIN
-// ------------------------------------------------------------------------
 func main() {
-	// Load environment variables from .env if present
 	if err := godotenv.Load("../.env"); err != nil {
 		logger.Warn("No .env file found or error loading it. Proceeding with system env variables.")
 	}
@@ -125,41 +105,25 @@ func main() {
 	logger.SetOutput(os.Stdout)
 	logger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
 
-	// Connect to MongoDB
 	if err := connectMongoDB(); err != nil {
 		logger.WithError(err).Fatal("Failed to initialize MongoDB connection.")
 	}
 	logger.Info("Connected to MongoDB successfully.")
 
-	// Setup router
 	r := mux.NewRouter()
-
-	// Serve static files from "/public" if needed (CSS, etc.)
 	r.PathPrefix("/public").Handler(http.FileServer(http.Dir("./")))
-
-	// 1) ENDPOINT: POST /payment
-	//    Mark transaction as Pending, respond with the payment URL
 	r.HandleFunc("/payment", paymentHandler).Methods(http.MethodPost)
-
-	// 2) GET /payment/form => Serve Payment HTML Form
 	r.HandleFunc("/payment/form", paymentFormHandler).Methods(http.MethodGet)
-
-	// 3) POST /payment/submit => Process Payment Form data
 	r.HandleFunc("/payment/submit", paymentSubmitHandler).Methods(http.MethodPost)
-
-	// Convenience: GET /payment => Serve the same HTML form
-	// e.g. http://localhost:8081/payment?transactionId=XYZ
 	r.HandleFunc("/payment", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "payment.html")
 	}).Methods(http.MethodGet)
 
-	// Start the HTTP server
 	srv := &http.Server{
 		Addr:    ":8081",
 		Handler: r,
 	}
 
-	// Graceful shutdown handling
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
@@ -188,13 +152,9 @@ func main() {
 	logger.Info("Server exited gracefully.")
 }
 
-// ------------------------------------------------------------------------
-// CONNECT TO MONGODB
-// ------------------------------------------------------------------------
 func connectMongoDB() error {
 	mongoURI := os.Getenv("MONGO_CONNECT")
 	if mongoURI == "" {
-		// Fallback example only
 		mongoURI = "mongodb+srv://app:dUp1o7jI28uvLAwh@cluster.dnxyg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster"
 		logger.Warn("Using fallback Mongo URI for demonstration.")
 	}
@@ -217,11 +177,6 @@ func connectMongoDB() error {
 	return nil
 }
 
-// ------------------------------------------------------------------------
-//  1. POST /payment
-//     Mark transaction as "Pending Payment", return payment URL
-//
-// ------------------------------------------------------------------------
 func paymentHandler(w http.ResponseWriter, r *http.Request) {
 	var req PaymentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -230,37 +185,19 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mark transaction as "Pending Payment" in DB
 	updateTransactionStatus(req.TransactionID, "Pending Payment")
-
-	// Return a URL to the payment form
 	paymentURL := fmt.Sprintf("http://localhost:8081/payment?transactionId=%s", req.TransactionID)
-
-	// Respond with success + the link
-	respondJSON(w, http.StatusOK, true,
-		"Transaction created. Please open form to complete payment.",
-		paymentURL,
-	)
+	respondJSON(w, http.StatusOK, true, "Transaction created. Please open form to complete payment.", paymentURL)
 }
 
-// ------------------------------------------------------------------------
-// 2) GET /payment/form => Serves Payment HTML Form
-// ------------------------------------------------------------------------
 func paymentFormHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	http.ServeFile(w, r, "payment.html") // Make sure payment.html is in the same dir or adjust path
+	http.ServeFile(w, r, "payment.html")
 }
 
-// ------------------------------------------------------------------------
-// 3) POST /payment/submit => Process Payment Form data
-//   - Validate card (mock)
-//   - If valid => set "Paid" => generate PDF => email => set "Completed"
-//   - If invalid => "Declined"
-//
-// ------------------------------------------------------------------------
 func paymentSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	var req FormPaymentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -268,17 +205,12 @@ func paymentSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Mock card validation
 	if !mockValidateCard(req.PaymentForm.CardNumber, req.PaymentForm.ExpirationDate, req.PaymentForm.CVV) {
 		updateTransactionStatus(req.TransactionID, "Declined")
-		respondJSON(w, http.StatusOK, false,
-			"Payment declined (mock validation fails: card is invalid/expired)",
-			"",
-		)
+		respondJSON(w, http.StatusOK, false, "Payment declined (mock validation fails: card is invalid/expired)", "")
 		return
 	}
 
-	// 2. If valid => Mark transaction as "Paid"
 	updateTransactionStatus(req.TransactionID, "Paid")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -299,7 +231,6 @@ func paymentSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Cannot decode user ", err.Error())
 	}
 
-	// 3. Generate & email PDF receipt
 	paymentReq := PaymentRequest{
 		TransactionID: req.TransactionID,
 		CartItems:     req.CartItems,
@@ -307,23 +238,14 @@ func paymentSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		TotalAmount:   req.TotalAmount,
 	}
 	if err := generateAndSendReceiptPDF(paymentReq); err != nil {
-		respondJSON(w, http.StatusInternalServerError, false,
-			"Receipt generation failed: "+err.Error(),
-			"",
-		)
+		respondJSON(w, http.StatusInternalServerError, false, "Receipt generation failed: "+err.Error(), "")
 		return
 	}
 
-	// 4. After emailing, Mark transaction as "Completed"
 	updateTransactionStatus(req.TransactionID, "Completed")
-
-	// 5. Respond success
 	respondJSON(w, http.StatusOK, true, "Payment successful! Receipt emailed.", "")
 }
 
-// ------------------------------------------------------------------------
-// HELPER: respondJSON
-// ------------------------------------------------------------------------
 func respondJSON(w http.ResponseWriter, status int, success bool, msg string, paymentURL string) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(PaymentResponse{
@@ -333,9 +255,6 @@ func respondJSON(w http.ResponseWriter, status int, success bool, msg string, pa
 	})
 }
 
-// ------------------------------------------------------------------------
-// HELPER: mockValidateCard (Naive example checking expiration date + length)
-// ------------------------------------------------------------------------
 func mockValidateCard(cardNumber, expiration, cvv string) bool {
 	parts := strings.Split(expiration, "/")
 	if len(parts) != 2 {
@@ -351,7 +270,6 @@ func mockValidateCard(cardNumber, expiration, cvv string) bool {
 		return false
 	}
 
-	// Convert to full year if only last two digits
 	if year < 50 {
 		year += 2000
 	} else if year < 100 {
@@ -362,24 +280,18 @@ func mockValidateCard(cardNumber, expiration, cvv string) bool {
 	currentYear := now.Year()
 	currentMonth := int(now.Month())
 
-	// If year < current year => expired
 	if year < currentYear {
 		return false
 	}
-	// Same year but month < currentMonth => expired
 	if year == currentYear && month < currentMonth {
 		return false
 	}
-	// Basic length checks
 	if len(cardNumber) < 8 || len(cvv) < 3 {
 		return false
 	}
 	return true
 }
 
-// ------------------------------------------------------------------------
-// Update a Transaction Status in MongoDB
-// ------------------------------------------------------------------------
 func updateTransactionStatus(transactionID, status string) {
 	if dbCollection == nil {
 		logger.Warn("No DB collection available, skipping DB update.")
@@ -405,33 +317,25 @@ func updateTransactionStatus(transactionID, status string) {
 	}
 }
 
-// ------------------------------------------------------------------------
-// HELPER: generateAndSendReceiptPDF
-// ------------------------------------------------------------------------
-
 func generateInvoicePDF(transactionID, username, email string, cartItems interface{}, totalAmount float64) (string, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetFont("Arial", "", 12)
 
-	// Title
 	pdf.AddPage()
 	pdf.Cell(40, 10, "Pullo Project - Fiscal Receipt")
 	pdf.Ln(10)
 
-	// Transaction Details
 	now := time.Now().Format("2006-01-02 15:04:05")
 	pdf.Cell(40, 10, "Transaction ID: "+transactionID)
 	pdf.Ln(10)
 	pdf.Cell(40, 10, "Date & Time: "+now)
 	pdf.Ln(10)
 
-	// Customer Info
 	pdf.Cell(40, 10, "Customer: "+username)
 	pdf.Ln(10)
 	pdf.Cell(40, 10, "Email: "+email)
 	pdf.Ln(10)
 
-	// Cart Items
 	pdf.Ln(5)
 	pdf.SetFont("Arial", "B", 14)
 	pdf.Cell(0, 10, "Items Purchased:")
@@ -455,17 +359,14 @@ func generateInvoicePDF(transactionID, username, email string, cartItems interfa
 
 	pdf.Ln(5)
 	pdf.SetFont("Arial", "B", 12)
-	// Total Amount
 	pdf.Cell(0, 10, fmt.Sprintf("Total Amount: $%.2f", totalAmount))
 	pdf.Ln(10)
 
-	// Payment Method
 	pdf.Cell(0, 10, "Payment Method: Mock Credit Card (****-****-****-1234)")
 	pdf.Ln(12)
 	pdf.Cell(0, 10, "Thank you for your purchase!")
 	pdf.Ln(12)
 
-	// Save PDF to memory buffer
 	var buf bytes.Buffer
 	err := pdf.Output(&buf)
 	if err != nil {
@@ -473,12 +374,10 @@ func generateInvoicePDF(transactionID, username, email string, cartItems interfa
 		return "", err
 	}
 
-	// Convert to Base64
 	pdfBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 	return pdfBase64, nil
 }
 
-// Send Email with PDF Attachment using gomail
 func sendEmailWithAttachment(to, subject, message, filename, fileContent string) error {
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
@@ -496,14 +395,12 @@ func sendEmailWithAttachment(to, subject, message, filename, fileContent string)
 		return fmt.Errorf("invalid SMTP port")
 	}
 
-	// Create a new email message
 	m := gomail.NewMessage()
 	m.SetHeader("From", smtpUser)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", message)
 
-	// Attach PDF if available
 	if filename != "" && fileContent != "" {
 		pdfBytes, err := base64.StdEncoding.DecodeString(fileContent)
 		if err != nil {
@@ -516,10 +413,8 @@ func sendEmailWithAttachment(to, subject, message, filename, fileContent string)
 		}))
 	}
 
-	// SMTP Dialer setup
 	d := gomail.NewDialer(smtpHost, port, smtpUser, smtpPass)
 
-	// Send Email
 	if err := d.DialAndSend(m); err != nil {
 		log.Println("Failed to send email:", err)
 		return fmt.Errorf("failed to send email: %w", err)
@@ -529,15 +424,12 @@ func sendEmailWithAttachment(to, subject, message, filename, fileContent string)
 	return nil
 }
 
-// Integrate into payment processing function
 func generateAndSendReceiptPDF(req PaymentRequest) error {
-	// Generate Base64-encoded PDF
 	pdfBase64, err := generateInvoicePDF(req.TransactionID, req.Customer.Name, req.Customer.Email, req.CartItems, req.TotalAmount)
 	if err != nil {
 		return fmt.Errorf("failed to generate invoice PDF: %w", err)
 	}
 
-	// Send Email with PDF attachment
 	err = sendEmailWithAttachment(
 		req.Customer.Email,
 		"Your Pullo Receipt",
