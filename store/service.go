@@ -115,6 +115,7 @@ func main() {
 	r.HandleFunc("/payment", paymentHandler).Methods(http.MethodPost)
 	r.HandleFunc("/payment/form", paymentFormHandler).Methods(http.MethodGet)
 	r.HandleFunc("/payment/submit", paymentSubmitHandler).Methods(http.MethodPost)
+	r.HandleFunc("/transaction/status", getTransactionStatusHandler).Methods(http.MethodGet)
 	r.HandleFunc("/payment", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "payment.html")
 	}).Methods(http.MethodGet)
@@ -133,7 +134,6 @@ func main() {
 			logger.WithError(err).Fatal("Server failed")
 		}
 	}()
-
 	<-quit
 	logger.Info("Shutting down server...")
 
@@ -211,7 +211,7 @@ func paymentSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateTransactionStatus(req.TransactionID, "Paid")
+	updateTransactionStatus(req.TransactionID, "Pending Payment")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -443,4 +443,38 @@ func generateAndSendReceiptPDF(req PaymentRequest) error {
 
 	logrus.Info("Invoice email sent successfully.")
 	return nil
+}
+func getTransactionStatusHandler(w http.ResponseWriter, r *http.Request) {
+	transactionID := r.URL.Query().Get("transactionId")
+	if transactionID == "" {
+		respondJSON(w, http.StatusBadRequest, false, "Missing transaction ID", "")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := map[string]interface{}{"transactionId": transactionID}
+	var transaction Transaction
+
+	if err := dbCollection.FindOne(ctx, filter).Decode(&transaction); err != nil {
+		logger.WithError(err).Error("Transaction not found")
+		respondJSON(w, http.StatusNotFound, false, "Transaction not found", "")
+		return
+	}
+
+	if transaction.Status != "Paid" && transaction.Status != "Declined" {
+		updateTransactionStatus(transactionID, "Pending Payment")
+		transaction.Status = "Pending Payment"
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"status":  string(transaction.Status),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(response)
+	if err != nil {
+		return
+	}
 }
