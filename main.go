@@ -64,7 +64,7 @@ const (
 
 type Transaction struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	TransactionID string             `bson:"transactionId" json:"transactionId"` // For cross-reference
+	TransactionID string             `bson:"transactionId" json:"transactionId"`
 	UserID        string             `bson:"userId"        json:"userId"`
 	CartItems     []CartItem         `bson:"cartItems"     json:"cartItems"`
 	TotalAmount   float64            `bson:"totalAmount"   json:"totalAmount"`
@@ -173,6 +173,10 @@ func main() {
 	r.Handle("/api/cart/{sneakerId}", AuthMiddleware(http.HandlerFunc(removeFromCartHandler))).Methods(http.MethodDelete)
 
 	r.Handle("/api/checkout", AuthMiddleware(http.HandlerFunc(checkoutHandler))).Methods(http.MethodPost)
+
+	r.HandleFunc("/payment", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/payment.html")
+	}).Methods(http.MethodGet)
 
 	// Start the server
 	srv := &http.Server{

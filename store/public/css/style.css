@@ -192,7 +192,7 @@ button {
 .header_section{
 	width: 100%;
 	float: left;
-	background-image: url(/store/public/images/banner.png);
+	background-image: url(/public/images/banner.png);
 	height: auto;
 	padding: 20px 0px;
 	background-size: 100%;
@@ -579,7 +579,7 @@ a:hover {
 .shop_banner{
 	width: 100%;
 	float: left;
-	background-image: url(/store/public/images/shop-banner.png);
+	background-image: url(/public/images/shop-banner.png);
 	height: auto;
 	padding: 70px;
 }
