@@ -174,6 +174,10 @@ func connectMongoDB() error {
 	db := db.Database("OnlineStore")
 	dbCollection = db.Collection("transactions")
 
+	//dbClient = client
+	//database := dbClient.Database("OnlineStore")
+	//dbCollection = database.Collection("yment/subm")
+
 	return nil
 }
 
@@ -224,8 +228,22 @@ func paymentSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel2()
+	data, _ := json.Marshal(tx)
+	logger.Info(string(data))
 
-	filter2 := map[string]interface{}{"_id": tx.UserID}
+	userMongoID, err := primitive.ObjectIDFromHex(tx.UserID)
+	if err != nil {
+		logger.WithError(err).Error("Cannot convert user id to primitive.ObjectID")
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			false,
+			"Cannot convert user id to primitive.ObjectID"+err.Error(),
+			"",
+		)
+	}
+
+	filter2 := primitive.D{{"_id", userMongoID}}
 	var user User
 	if err := db.Database("db").Collection("users").FindOne(ctx2, filter2).Decode(&user); err != nil {
 		logger.Error("Cannot decode user ", err.Error())
@@ -429,7 +447,7 @@ func generateAndSendReceiptPDF(req PaymentRequest) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate invoice PDF: %w", err)
 	}
-
+	logger.Info(json.Marshal(req))
 	err = sendEmailWithAttachment(
 		req.Customer.Email,
 		"Your Pullo Receipt",
