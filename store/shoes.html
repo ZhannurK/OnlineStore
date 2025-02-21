@@ -8,6 +8,17 @@
     <link rel="stylesheet" href="./public/css/bootstrap.min.css" />
     <link rel="stylesheet" href="./public/css/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .sneaker-image {
+            width: 200px;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px;
+            border-radius: 10px;
+        }
+    </style>
+
 </head>
 <body class="main-layout">
 <!-- header section -->
@@ -208,9 +219,8 @@
         sneakers.forEach((s) => {
             const card = document.createElement("div");
             card.className = "sneaker-card";
-
-            // Add a "bucket"/cart icon (Font Awesome) with click event:
             card.innerHTML = `
+            <img src="${s.image}" class="sneaker-image"/>
             <h2>${s.model}</h2>
             <p>Brand: ${s.brand}</p>
             <p>Color: ${s.color}</p>
@@ -219,7 +229,6 @@
               <i class="fas fa-shopping-basket"></i> Add to Cart
             </button>
         `;
-
             container.appendChild(card);
         });
 

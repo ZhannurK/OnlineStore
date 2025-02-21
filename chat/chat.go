@@ -22,12 +22,10 @@ var chatClients = make(map[*websocket.Conn]string) // WebSocket-клиенты
 var mutex sync.Mutex
 var db *mongo.Client
 
-// Инициализация MongoDB
 func InitMongoDB(mongoClient *mongo.Client) {
 	db = mongoClient
 }
 
-// Создание нового чата
 func CreateChatHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := r.URL.Query().Get("id")
 	if clientID == "" {
@@ -44,7 +42,10 @@ func CreateChatHandler(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		resp := map[string]string{"message": "У вас уже есть активный чат"}
 		jsonResp, _ := json.Marshal(resp)
-		w.Write(jsonResp)
+		_, err := w.Write(jsonResp)
+		if err != nil {
+			return
+		}
 		return
 	}
 
@@ -62,17 +63,24 @@ func CreateChatHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp2 := map[string]string{"message": "Чат создан"}
 	jsonResp2, _ := json.Marshal(resp2)
-	w.Write(jsonResp2)
+	_, err = w.Write(jsonResp2)
+	if err != nil {
+		return
+	}
 }
 
-// WebSocket-обработчик
-func ChatHandler(w http.ResponseWriter, r *http.Request) {
+func Handler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Ошибка WebSocket:", err)
 		return
 	}
-	defer ws.Close()
+	defer func(ws *websocket.Conn) {
+		err := ws.Close()
+		if err != nil {
+
+		}
+	}(ws)
 
 	clientID := r.URL.Query().Get("id")
 	if clientID == "" {
@@ -80,7 +88,6 @@ func ChatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// **Если это админ, то он подключается к активному чату пользователя**
 	if clientID == "admin" {
 		clientID = r.URL.Query().Get("chat_id") // Админ должен выбрать, с кем общается
 	}
@@ -91,7 +98,6 @@ func ChatHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Новое соединение с клиентом:", clientID)
 
-	// **Отправляем историю сообщений**
 	sendChatHistory(ws, clientID)
 
 	for {
@@ -115,7 +121,6 @@ func ChatHandler(w http.ResponseWriter, r *http.Request) {
 	mutex.Unlock()
 }
 
-// Закрытие чата администратором
 func DeleteChatHandler(w http.ResponseWriter, r *http.Request) {
 	chatID := r.URL.Query().Get("chat_id")
 	if chatID == "" {
@@ -133,17 +138,22 @@ func DeleteChatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Удаляем WebSocket-соединения
 	mutex.Lock()
 	for conn, clientID := range chatClients {
 		if clientID == chatID {
-			conn.Close()
+			err := conn.Close()
+			if err != nil {
+				return
+			}
 			delete(chatClients, conn)
 		}
 	}
 	mutex.Unlock()
 
-	w.Write([]byte(`{"message": "Чат удалён"}`))
+	_, err = w.Write([]byte(`{"message": "Чат удалён"}`))
+	if err != nil {
+		return
+	}
 }
 
 func sendChatHistory(ws *websocket.Conn, chatID string) {
@@ -170,7 +180,6 @@ func sendChatHistory(ws *websocket.Conn, chatID string) {
 	}
 }
 
-// Сохранение сообщения в MongoDB
 func saveMessage(chatID, sender, content string) {
 	if db == nil {
 		log.Println("MongoDB не инициализирован")
@@ -201,7 +210,6 @@ func saveMessage(chatID, sender, content string) {
 	}
 }
 
-// Отправка сообщения только в нужный чат
 func broadcastMessage(chatID string, msg interface{}) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -211,7 +219,10 @@ func broadcastMessage(chatID string, msg interface{}) {
 			err := conn.WriteJSON(msg)
 			if err != nil {
 				log.Println("Ошибка отправки сообщения:", err)
-				conn.Close()
+				err := conn.Close()
+				if err != nil {
+					return
+				}
 				delete(chatClients, conn)
 			}
 		}

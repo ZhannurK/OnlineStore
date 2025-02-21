@@ -14,7 +14,6 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -30,22 +29,14 @@ import (
 	gomail "gopkg.in/mail.v2"
 
 	"programming/chat"
-
-	"github.com/gorilla/websocket"
 )
 
 var (
-	db          *mongo.Client
-	logger      = logrus.New()
-	limiter     = rate.NewLimiter(50, 50)
-	jwtKey      []byte
-	chatClients = make(map[*websocket.Conn]string) // Соединения WebSocket
-	mutex       = sync.Mutex{}
+	db      *mongo.Client
+	logger  = logrus.New()
+	limiter = rate.NewLimiter(50, 50)
+	jwtKey  []byte
 )
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
 
 type Claims struct {
 	Email string `json:"email"`
@@ -165,6 +156,7 @@ func init() {
 func main() {
 
 	jwtKey = []byte(os.Getenv("JWTSECRET"))
+
 	chat.InitMongoDB(db)
 
 	r := mux.NewRouter()
@@ -222,8 +214,7 @@ func main() {
 	r.Handle("/api/cart/{sneakerId}", AuthMiddleware(http.HandlerFunc(removeFromCartHandler))).Methods(http.MethodDelete)
 	r.Handle("/api/checkout", AuthMiddleware(http.HandlerFunc(checkoutHandler))).Methods(http.MethodPost)
 
-	// WebSocket маршрут
-	r.HandleFunc("/chat", chat.ChatHandler)
+	r.HandleFunc("/chat", chat.Handler)
 	r.HandleFunc("/create-chat", chat.CreateChatHandler).Methods(http.MethodPost)
 	r.HandleFunc("/delete-chat", chat.DeleteChatHandler).Methods(http.MethodPost)
 
@@ -238,7 +229,12 @@ func main() {
 			http.Error(w, "Ошибка загрузки чатов", http.StatusInternalServerError)
 			return
 		}
-		defer cursor.Close(ctx)
+		defer func(cursor *mongo.Cursor, ctx context.Context) {
+			err := cursor.Close(ctx)
+			if err != nil {
+
+			}
+		}(cursor, ctx)
 
 		var chats []bson.M
 		if err := cursor.All(ctx, &chats); err != nil {
@@ -250,7 +246,10 @@ func main() {
 		log.Println("Active chats:", chats)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(chats)
+		err = json.NewEncoder(w).Encode(chats)
+		if err != nil {
+			return
+		}
 	}).Methods(http.MethodGet)
 
 	srv := &http.Server{
