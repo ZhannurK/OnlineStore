@@ -1,0 +1,706 @@
+[
+  {
+    "brand": "Adidas",
+    "model": "NMD R1",
+    "price": 140,
+    "color": "Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123597/freepik__the-style-is-candid-image-photography-with-natural__62903_ax78nv.png"
+  },
+  {
+    "brand": "Nike",
+    "model": "Air Max 270",
+    "price": 150,
+    "color": "White",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123597/freepik__the-style-is-candid-image-photography-with-natural__62905_mwxym8.png"
+  },
+  {
+    "brand": "Puma",
+    "model": "RS-X",
+    "price": 110,
+    "color": "Red",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123598/freepik__the-style-is-candid-image-photography-with-natural__62906_dofoxc.png"
+  },
+  {
+    "brand": "Reebok",
+    "model": "Club C",
+    "price": 75,
+    "color": "Green",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123667/freepik__the-style-is-candid-image-photography-with-natural__62907_bpp45k.png"
+  },
+  {
+    "brand": "New Balance",
+    "model": "574",
+    "price": 85,
+    "color": "Grey",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123667/freepik__the-style-is-candid-image-photography-with-natural__62908_mklbno.png"
+  },
+  {
+    "brand": "Asics",
+    "model": "Gel-Kayano",
+    "price": 160,
+    "color": "Blue",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123668/freepik__the-style-is-candid-image-photography-with-natural__6325_tlfnka.png"
+  },
+  {
+    "brand": "Under Armour",
+    "model": "HOVR Phantom",
+    "price": 140,
+    "color": "Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123666/freepik__the-style-is-candid-image-photography-with-natural__6326_zqa0om.png"
+  },
+  {
+    "brand": "Vans",
+    "model": "Old Skool",
+    "price": 60,
+    "color": "Checkerboard",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123668/freepik__the-style-is-candid-image-photography-with-natural__6327_jzlksu.png"
+  },
+  {
+    "brand": "Converse",
+    "model": "Chuck Taylor All Star",
+    "price": 55,
+    "color": "Red",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123763/freepik__converse-chuck-taylor-all-star__6328_if24qh.png"
+  },
+  {
+    "brand": "Jordan",
+    "model": "Air Jordan 1",
+    "price": 170,
+    "color": "Black/Red",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123762/freepik__the-style-is-candid-image-photography-with-natural__6329_lqdb3y.png"
+  },
+  {
+    "brand": "Nike",
+    "model": "Air Force 1",
+    "price": 90,
+    "color": "White",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123762/freepik__the-style-is-candid-image-photography-with-natural__38812_dnz289.png"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Ultraboost",
+    "price": 180,
+    "color": "Grey",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123761/freepik__the-style-is-candid-image-photography-with-natural__38813_qgzybo.png"
+  },
+  {
+    "brand": "Puma",
+    "model": "Clyde",
+    "price": 75,
+    "color": "Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123763/freepik__the-style-is-candid-image-photography-with-natural__38814_hu2e0g.png"
+  },
+  {
+    "brand": "New Balance",
+    "model": "990v5",
+    "price": 185,
+    "color": "Navy",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123862/freepik__the-style-is-candid-image-photography-with-natural__38815_pioxen.png"
+  },
+  {
+    "brand": "Reebok",
+    "model": "Nano X1",
+    "price": 140,
+    "color": "Grey",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123861/freepik__the-style-is-candid-image-photography-with-natural__38816_ien2k8.png"
+  },
+  {
+    "brand": "Asics",
+    "model": "Gel-Lyte III",
+    "price": 100,
+    "color": "White",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123861/freepik__the-style-is-candid-image-photography-with-natural__41232_odmjzq.png"
+  },
+  {
+    "brand": "Under Armour",
+    "model": "Charged Assert",
+    "price": 80,
+    "color": "Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123860/freepik__the-style-is-candid-image-photography-with-natural__41233_biop2z.png"
+  },
+  {
+    "brand": "Vans",
+    "model": "Sk8-Hi",
+    "price": 70,
+    "color": "Black/White",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123859/freepik__the-style-is-candid-image-photography-with-natural__41234_wvvsev.png"
+  },
+  {
+    "brand": "Converse",
+    "model": "One Star",
+    "price": 60,
+    "color": "Green",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123859/freepik__converse-one-star__41235_iwyvay.png"
+  },
+  {
+    "brand": "Nike",
+    "model": "React Infinity Run",
+    "price": 160,
+    "color": "Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123945/freepik__the-style-is-candid-image-photography-with-natural__41236_yra2td.png"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Superstar",
+    "price": 85,
+    "color": "White/Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123942/freepik__the-style-is-candid-image-photography-with-natural__41237_rdtig6.png"
+  },
+  {
+    "brand": "Puma",
+    "model": "Future Rider",
+    "price": 100,
+    "color": "Yellow",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123942/freepik__the-style-is-candid-image-photography-with-natural__41238_zulxtd.png"
+  },
+  {
+    "brand": "Reebok",
+    "model": "Zig Kinetica",
+    "price": 150,
+    "color": "Blue",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123941/freepik__the-style-is-candid-image-photography-with-natural__41355_vl2cah.png"
+  },
+  {
+    "brand": "New Balance",
+    "model": "1080v11",
+    "price": 160,
+    "color": "Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740123945/freepik__the-style-is-candid-image-photography-with-natural__41356_esyrcy.png"
+  },
+  {
+    "brand": "Asics",
+    "model": "Gel-Nimbus 23",
+    "price": 150,
+    "color": "Pink",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740124022/freepik__the-style-is-candid-image-photography-with-natural__41357_jckvjy.png"
+  },
+  {
+    "brand": "Under Armour",
+    "model": "HOVR Sonic",
+    "price": 120,
+    "color": "Grey",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740124022/freepik__the-style-is-candid-image-photography-with-natural__41358_y8oded.png"
+  },
+  {
+    "brand": "Vans",
+    "model": "Authentic",
+    "price": 50,
+    "color": "Navy",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740124022/freepik__the-style-is-candid-image-photography-with-natural__41359_zz8iu4.png"
+  },
+  {
+    "brand": "Converse",
+    "model": "Jack Purcell",
+    "price": 70,
+    "color": "White",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740124024/freepik__the-style-is-candid-image-photography-with-natural__41360_jh2ukc.png"
+  },
+  {
+    "brand": "Jordan",
+    "model": "Air Jordan 3",
+    "price": 190,
+    "color": "White/Fire Red",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740124023/freepik__the-style-is-candid-image-photography-with-natural__41361_m9yafg.png"
+  },
+  {
+    "brand": "Nike",
+    "model": "Zoom Fly",
+    "price": 160,
+    "color": "Black",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740124115/freepik__the-style-is-candid-image-photography-with-natural__41362_cmekha.png"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Yeezy Boost 350",
+    "price": 220,
+    "color": "Cream",
+    "image": "https://res.cloudinary.com/dpcaz6z1q/image/upload/v1740124116/freepik__the-style-is-candid-image-photography-with-natural__41363_gmpjou.png"
+  },
+  {
+    "brand": "Puma",
+    "model": "Basket Classic",
+    "price": 65,
+    "color": "Black",
+    "image": "https://example.com/images/puma-basket-classic-black.jpg"
+  },
+  {
+    "brand": "Reebok",
+    "model": "Classic Leather",
+    "price": 80,
+    "color": "White",
+    "image": "https://example.com/images/reebok-classic-leather-white.jpg"
+  },
+  {
+    "brand": "New Balance",
+    "model": "Fresh Foam 1080",
+    "price": 150,
+    "color": "Blue",
+    "image": "https://example.com/images/new-balance-fresh-foam-1080-blue.jpg"
+  },
+  {
+    "brand": "Asics",
+    "model": "Gel-Quantum 360",
+    "price": 180,
+    "color": "Black",
+    "image": "https://example.com/images/asics-gel-quantum-360-black.jpg"
+  },
+  {
+    "brand": "Under Armour",
+    "model": "Project Rock 3",
+    "price": 140,
+    "color": "Black/Red",
+    "image": "https://example.com/images/under-armour-project-rock-3-black-red.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Slip-On",
+    "price": 55,
+    "color": "Black/White Checker",
+    "image": "https://example.com/images/vans-slip-on-black-white-checker.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Chuck 70",
+    "price": 80,
+    "color": "Black",
+    "image": "https://example.com/images/converse-chuck-70-black.jpg"
+  },
+  {
+    "brand": "Jordan",
+    "model": "Air Jordan 4",
+    "price": 200,
+    "color": "White/Black",
+    "image": "https://example.com/images/jordan-air-jordan-4-white-black.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Air Max 97",
+    "price": 170,
+    "color": "Silver",
+    "image": "https://example.com/images/nike-air-max-97-silver.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Yeezy 500",
+    "price": 200,
+    "color": "Blush",
+    "image": "https://example.com/images/adidas-yeezy-500-blush.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "RS-0",
+    "price": 90,
+    "color": "White",
+    "image": "https://example.com/images/puma-rs-0-white.jpg"
+  },
+  {
+    "brand": "Reebok",
+    "model": "Instapump Fury",
+    "price": 150,
+    "color": "Black/White",
+    "image": "https://example.com/images/reebok-instapump-fury-black-white.jpg"
+  },
+  {
+    "brand": "New Balance",
+    "model": "997H",
+    "price": 90,
+    "color": "Black/Grey",
+    "image": "https://example.com/images/new-balance-997h-black-grey.jpg"
+  },
+  {
+    "brand": "Asics",
+    "model": "Gel-Venture 7",
+    "price": 75,
+    "color": "Blue",
+    "image": "https://example.com/images/asics-gel-venture-7-blue.jpg"
+  },
+  {
+    "brand": "Under Armour",
+    "model": "HOVR Apex",
+    "price": 160,
+    "color": "Black",
+    "image": "https://example.com/images/under-armour-hovr-apex-black.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Era",
+    "price": 60,
+    "color": "Red",
+    "image": "https://example.com/images/vans-era-red.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Chuck Taylor All Star Lift",
+    "price": 85,
+    "color": "White",
+    "image": "https://example.com/images/converse-chuck-taylor-lift-white.jpg"
+  },
+  {
+    "brand": "Jordan",
+    "model": "Air Jordan 12",
+    "price": 190,
+    "color": "Black/Red",
+    "image": "https://example.com/images/jordan-air-jordan-12-black-red.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Blazer Mid",
+    "price": 100,
+    "color": "White/Black",
+    "image": "https://example.com/images/nike-blazer-mid-white-black.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Torsion TRDC",
+    "price": 130,
+    "color": "Orange",
+    "image": "https://example.com/images/adidas-torsion-trdc-orange.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "Thunder Spectra",
+    "price": 130,
+    "color": "Black/Yellow",
+    "image": "https://example.com/images/puma-thunder-spectra-black-yellow.jpg"
+  },
+  {
+    "brand": "Reebok",
+    "model": "Workout Plus",
+    "price": 80,
+    "color": "White",
+    "image": "https://example.com/images/reebok-workout-plus-white.jpg"
+  },
+  {
+    "brand": "New Balance",
+    "model": "860v11",
+    "price": 120,
+    "color": "Grey/Blue",
+    "image": "https://example.com/images/new-balance-860v11-grey-blue.jpg"
+  },
+  {
+    "brand": "Asics",
+    "model": "Gel-Excite 8",
+    "price": 85,
+    "color": "Black/Red",
+    "image": "https://example.com/images/asics-gel-excite-8-black-red.jpg"
+  },
+  {
+    "brand": "Under Armour",
+    "model": "Curry 8",
+    "price": 160,
+    "color": "White/Gold",
+    "image": "https://example.com/images/under-armour-curry-8-white-gold.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "ComfyCush Old Skool",
+    "price": 65,
+    "color": "Navy/White",
+    "image": "https://example.com/images/vans-comfycush-old-skool-navy-white.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Run Star Hike",
+    "price": 90,
+    "color": "Black",
+    "image": "https://example.com/images/converse-run-star-hike-black.jpg"
+  },
+  {
+    "brand": "Jordan",
+    "model": "Air Jordan 11",
+    "price": 220,
+    "color": "Bred",
+    "image": "https://example.com/images/jordan-air-jordan-11-bred.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Air Max 1",
+    "price": 140,
+    "color": "White/Red",
+    "image": "https://example.com/images/nike-air-max-1-white-red.jpg"
+  },
+
+  {
+    "brand": "Nike",
+    "model": "Air Max Plus",
+    "price": 160,
+    "color": "Black/Volt",
+    "image": "https://example.com/images/nike-air-max-plus-black-volt.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Air Monarch IV",
+    "price": 70,
+    "color": "White/Navy",
+    "image": "https://example.com/images/nike-air-monarch-iv-white-navy.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Kyrie 7",
+    "price": 130,
+    "color": "Black/Red",
+    "image": "https://example.com/images/nike-kyrie-7-black-red.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Zoom Freak 2",
+    "price": 120,
+    "color": "White/Green",
+    "image": "https://example.com/images/nike-zoom-freak-2-white-green.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Air Zoom Pegasus 38",
+    "price": 120,
+    "color": "Black/White",
+    "image": "https://example.com/images/nike-pegasus-38-black-white.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "SB Dunk Low",
+    "price": 100,
+    "color": "Grey/Blue",
+    "image": "https://example.com/images/nike-sb-dunk-low-grey-blue.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Waffle Racer",
+    "price": 90,
+    "color": "Sail/Green",
+    "image": "https://example.com/images/nike-waffle-racer-sail-green.jpg"
+  },
+  {
+    "brand": "Nike",
+    "model": "Air Presto",
+    "price": 130,
+    "color": "White/Black",
+    "image": "https://example.com/images/nike-air-presto-white-black.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Gazelle",
+    "price": 80,
+    "color": "Green/White",
+    "image": "https://example.com/images/adidas-gazelle-green-white.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Stan Smith",
+    "price": 85,
+    "color": "White/Green",
+    "image": "https://example.com/images/adidas-stan-smith-white-green.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Samba",
+    "price": 70,
+    "color": "Black/White",
+    "image": "https://example.com/images/adidas-samba-black-white.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "NMD_R1 V2",
+    "price": 150,
+    "color": "Core Black/Red",
+    "image": "https://example.com/images/adidas-nmd-r1-v2-core-black-red.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "AlphaBounce",
+    "price": 100,
+    "color": "Grey/Black",
+    "image": "https://example.com/images/adidas-alphabounce-grey-black.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "ZX 2K Boost",
+    "price": 150,
+    "color": "White/Multicolor",
+    "image": "https://example.com/images/adidas-zx-2k-boost-white-multicolor.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Continental 80",
+    "price": 80,
+    "color": "White/Red",
+    "image": "https://example.com/images/adidas-continental-80-white-red.jpg"
+  },
+  {
+    "brand": "Adidas",
+    "model": "Forum Low",
+    "price": 90,
+    "color": "White/Blue",
+    "image": "https://example.com/images/adidas-forum-low-white-blue.jpg"
+  },
+
+  {
+    "brand": "Converse",
+    "model": "Chuck Taylor All Star 70 Renew",
+    "price": 85,
+    "color": "Black",
+    "image": "https://example.com/images/converse-chuck-70-renew-black.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Chuck Taylor High Street",
+    "price": 70,
+    "color": "Grey",
+    "image": "https://example.com/images/converse-chuck-taylor-high-street-grey.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "One Star Pro",
+    "price": 75,
+    "color": "Black/White",
+    "image": "https://example.com/images/converse-one-star-pro-black-white.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Street Mid",
+    "price": 65,
+    "color": "Navy/White",
+    "image": "https://example.com/images/converse-street-mid-navy-white.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Weapon",
+    "price": 100,
+    "color": "White/Green",
+    "image": "https://example.com/images/converse-weapon-white-green.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Pro Leather",
+    "price": 90,
+    "color": "White/Red",
+    "image": "https://example.com/images/converse-pro-leather-white-red.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Chuck Taylor All Star Platform",
+    "price": 70,
+    "color": "White/Black",
+    "image": "https://example.com/images/converse-chuck-taylor-platform-white.jpg"
+  },
+  {
+    "brand": "Converse",
+    "model": "Jack Purcell Ox",
+    "price": 75,
+    "color": "White/Navy",
+    "image": "https://example.com/images/converse-jack-purcell-ox-white-navy.jpg"
+  },
+
+  {
+    "brand": "Vans",
+    "model": "Old Skool Pro",
+    "price": 65,
+    "color": "Black/White",
+    "image": "https://example.com/images/vans-old-skool-pro-black-white.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Sk8-Mid",
+    "price": 70,
+    "color": "Black/Gum",
+    "image": "https://example.com/images/vans-sk8-mid-black-gum.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Slip-On Pro",
+    "price": 60,
+    "color": "Checkerboard",
+    "image": "https://example.com/images/vans-slip-on-pro-checkerboard.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Era Pro",
+    "price": 55,
+    "color": "White/Black",
+    "image": "https://example.com/images/vans-era-pro-white-black.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Half Cab",
+    "price": 70,
+    "color": "Navy/White",
+    "image": "https://example.com/images/vans-half-cab-navy-white.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "UltraRange Rapidweld",
+    "price": 80,
+    "color": "Grey/White",
+    "image": "https://example.com/images/vans-ultrarange-grey-white.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Authentic Pro",
+    "price": 60,
+    "color": "Red/White",
+    "image": "https://example.com/images/vans-authentic-pro-red-white.jpg"
+  },
+  {
+    "brand": "Vans",
+    "model": "Ward",
+    "price": 55,
+    "color": "Black/White",
+    "image": "https://example.com/images/vans-ward-black-white.jpg"
+  },
+
+  {
+    "brand": "Puma",
+    "model": "Cali",
+    "price": 80,
+    "color": "White/Black",
+    "image": "https://example.com/images/puma-cali-white-black.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "Suede Classic",
+    "price": 65,
+    "color": "Navy/White",
+    "image": "https://example.com/images/puma-suede-classic-navy-white.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "Basket Heart",
+    "price": 70,
+    "color": "White",
+    "image": "https://example.com/images/puma-basket-heart-white.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "RS-2K",
+    "price": 110,
+    "color": "Black/Green",
+    "image": "https://example.com/images/puma-rs-2k-black-green.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "RS-Dreamer",
+    "price": 125,
+    "color": "Black/Multi",
+    "image": "https://example.com/images/puma-rs-dreamer-black-multi.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "Smash V2",
+    "price": 60,
+    "color": "White/Blue",
+    "image": "https://example.com/images/puma-smash-v2-white-blue.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "GV Special",
+    "price": 70,
+    "color": "White/Navy",
+    "image": "https://example.com/images/puma-gv-special-white-navy.jpg"
+  },
+  {
+    "brand": "Puma",
+    "model": "Future Rider Play On",
+    "price": 80,
+    "color": "Grey/Red",
+    "image": "https://example.com/images/puma-future-rider-play-on-grey-red.jpg"
+  }
+]
