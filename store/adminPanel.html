@@ -124,8 +124,24 @@
   <button class="submit-btn" onclick="saveSneaker()">Save Sneaker</button>
 </div>
 
+
+<h2>Active Chats</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Chat</th>
+      <th>User ID</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="chats-table"></tbody>
+</table>
+
+
+
 <!-- Minimal JavaScript for CRUD -->
 <script>
+
 
   let currentLocation = window.location.hostname;
   const pageSize = 5;
@@ -254,7 +270,51 @@
   // On page load
   window.addEventListener("DOMContentLoaded", () => {
     loadSneakers(1);
-  });
+
+    async function loadChats() {
+        const response = await fetch('/api/active-chats');
+        const chats = await response.json();
+        const table = document.getElementById("chats-table");
+        table.innerHTML = ""; // Очищаем перед обновлением
+
+        chats.forEach(chat => {
+            const row = document.createElement("tr");
+
+            // Ссылка на чат
+            const chatLink = document.createElement("td");
+            const a = document.createElement("a");
+            a.href = `/support?chat_id=${chat.chat_id}`;
+            a.textContent = `Chat with ${chat.chat_id}`;
+            chatLink.appendChild(a);
+
+            // ID пользователя
+            const userId = document.createElement("td");
+            userId.textContent = chat.chat_id;
+
+            // Кнопка удаления
+            const actions = document.createElement("td");
+            const button = document.createElement("button");
+            button.textContent = "Delete";
+            button.onclick = () => deleteChat(chat.chat_id);
+            actions.appendChild(button);
+
+            row.appendChild(chatLink);
+            row.appendChild(userId);
+            row.appendChild(actions);
+
+            table.appendChild(row);
+        });
+    }
+
+    async function deleteChat(chatId) {
+        const response = await fetch(`/delete-chat?chat_id=${chatId}`, { method: "POST" });
+        const data = await response.json();
+        alert(data.message);
+        loadChats(); // Обновляем список чатов после удаления
+    }
+
+    loadChats(); // Загружаем чаты при загрузке страницы
+});
 </script>
 </body>
 </html>

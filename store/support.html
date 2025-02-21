@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support</title>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatID = urlParams.get("chat_id") || localStorage.getItem("chat_id") || crypto.randomUUID();
+        const isAdmin = window.location.href.includes("admin");
+    
+        if (!isAdmin) {
+            localStorage.setItem("chat_id", chatID);
+        }
+    
+        const socket = new WebSocket(`ws://localhost:8080/chat?id=${isAdmin ? "admin" : chatID}&chat_id=${chatID}`);
+    
+        socket.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML += `<p><strong>${message.sender}:</strong> ${message.content}</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight; // **Авто-скролл вниз**
+        };
+    
+        function sendMessage() {
+            const input = document.getElementById("message-input");
+            const message = { sender: isAdmin ? "Admin" : chatID, content: input.value };
+            socket.send(JSON.stringify(message));
+            input.value = "";
+        }        
+    </script>
+    
+    
+    
+</head>
+<body>
+    <h2>Chat with support</h2>
+    <div id="chat-box" style="height: 300px; overflow-y: scroll; border: 1px solid #ccc;"></div>
+    <input type="text" id="message-input">
+    <button onclick="sendMessage()">Send</button>
+</body>
+</html>

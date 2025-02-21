@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -27,14 +28,24 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/time/rate"
 	gomail "gopkg.in/mail.v2"
+
+	"programming/chat"
+
+	"github.com/gorilla/websocket"
 )
 
 var (
-	db      *mongo.Client
-	logger  = logrus.New()
-	limiter = rate.NewLimiter(50, 50)
-	jwtKey  []byte
+	db          *mongo.Client
+	logger      = logrus.New()
+	limiter     = rate.NewLimiter(50, 50)
+	jwtKey      []byte
+	chatClients = make(map[*websocket.Conn]string) // Соединения WebSocket
+	mutex       = sync.Mutex{}
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 type Claims struct {
 	Email string `json:"email"`
@@ -154,6 +165,7 @@ func init() {
 func main() {
 
 	jwtKey = []byte(os.Getenv("JWTSECRET"))
+	chat.InitMongoDB(db)
 
 	r := mux.NewRouter()
 
@@ -168,6 +180,11 @@ func main() {
 	r.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./store/contact.html")
 	}).Methods(http.MethodGet)
+
+	r.HandleFunc("/support", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./store/support.html")
+	}).Methods(http.MethodGet)
+
 	r.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./store/signup.html")
 	}).Methods(http.MethodGet)
@@ -204,6 +221,37 @@ func main() {
 	r.Handle("/api/cart", AuthMiddleware(http.HandlerFunc(getCartHandler))).Methods(http.MethodGet)
 	r.Handle("/api/cart/{sneakerId}", AuthMiddleware(http.HandlerFunc(removeFromCartHandler))).Methods(http.MethodDelete)
 	r.Handle("/api/checkout", AuthMiddleware(http.HandlerFunc(checkoutHandler))).Methods(http.MethodPost)
+
+	// WebSocket маршрут
+	r.HandleFunc("/chat", chat.ChatHandler)
+	r.HandleFunc("/create-chat", chat.CreateChatHandler).Methods(http.MethodPost)
+	r.HandleFunc("/delete-chat", chat.DeleteChatHandler).Methods(http.MethodPost)
+
+	r.HandleFunc("/api/active-chats", func(w http.ResponseWriter, r *http.Request) {
+		collection := db.Database("db").Collection("chats")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		cursor, err := collection.Find(ctx, bson.M{"status": "active"})
+		if err != nil {
+			log.Println("Ошибка загрузки чатов:", err)
+			http.Error(w, "Ошибка загрузки чатов", http.StatusInternalServerError)
+			return
+		}
+		defer cursor.Close(ctx)
+
+		var chats []bson.M
+		if err := cursor.All(ctx, &chats); err != nil {
+			log.Println("Ошибка обработки данных:", err)
+			http.Error(w, "Ошибка обработки данных", http.StatusInternalServerError)
+			return
+		}
+
+		log.Println("Active chats:", chats)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(chats)
+	}).Methods(http.MethodGet)
 
 	srv := &http.Server{
 		Addr:    ":8080",
