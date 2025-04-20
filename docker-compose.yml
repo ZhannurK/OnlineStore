@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  shoestore:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      - PORT=8080
+
+  myapp:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URI=mongodb+srv://app:dUp1o7jI28uvLAwh@cluster.dnxyg.mongodb.net/myDatabase?retryWrites=true&w=majority&appName=Cluster
+    restart: always
+
+volumes:
+  mongo-data:
