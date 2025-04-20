@@ -1,4 +1,4 @@
-## Project Name
+## PULLO
 ### Sneakers Store
 
 ## Project Description
@@ -26,7 +26,8 @@ Help small businesses keep track of products effectively.
 | Adil   | Awesome Developer  |
 
 ## Screenshot of Main Page
-(Add an actual screenshot of the main webpage in the assets folder.)
+![image](https://github.com/user-attachments/assets/7a1e62d9-817b-412a-a53a-6b12a04eb2fc)
+
 
 ## How to Start the Project
 ### Prerequisites
@@ -37,8 +38,8 @@ Help small businesses keep track of products effectively.
 ### Steps to Start
 1. Clone the Repository
 ```bash
-git clone https://github.com/your-team/sneakers-store.git
-cd sneakers-store
+git clone https://github.com/ZhannurK/OnlineStore.git
+cd OnlineStore
 ```
 2. Run the Backend Server
 
@@ -49,41 +50,42 @@ go run main.go
 ```
 The server will be available at: http://localhost:8080.
 
-3. Serve the Frontend
-
-Use a local HTTP server to serve the `crud.html` file:
-```bash
-cd frontend
-python3 -m http.server 8000
 ```
 Open your browser and visit: http://localhost:8000.
 
 ## Tools and Technologies Used
-| Tool      | Purpose                             |
-|-----------|-------------------------------------|
-| Golang    | Backend server                     |
-| MongoDB   | Database for storing user data     |
-| HTML/CSS/JS| Frontend for user interaction      |
-| Postman   | API testing                        |
-| GitHub    | Version control and hosting        |
+| Tool       | Purpose                             |
+|------------|-------------------------------------|
+| Golang     | Backend server                      |
+| MongoDB    | Database for storing user data      |
+| HTML/CSS/JS| Frontend for user interaction       |
+| Postman    | API testing                         |
+| GitHub     | Version control and hosting         |
+```
 
 ## Repository Structure
 ```
-sneakers-store/
-├── backend/
-│   ├── main.go             # Main server file
+OnlineStore/
+├── main.go                 # Main server file
+├── main_test.go            # Three types of tests of main.go file
+├── chat/
+│   ├── chat.go             # support functions nad handlers
 │   ├── db/
 │   │   ├── mongo.go        # MongoDB connection
-│   │   ├── users.go         # CRUD operations
+│   │   ├── users.go        # CRUD operations
 │   └── go.mod              # Go module dependencies
-├── frontend/
-│   ├── index.html           # Main frontend file
+├── store/                  # frontend files
+│   ├── store.html          # home page
+|   ├── ...
 ├── README.md               # Project documentation
 ```
 
 ## Public Repository
 This project is publicly available at:  
-👉 [https://github.com/ZhannurK/Online-Shop.git](https://github.com/ZhannurK/Online-Shop.git)
+👉 https://github.com/ZhannurK/Online-Shop
+
+## Deploy of the project
+here you can see the project without downloading it 👉 https://onlinestore-production-d843.up.railway.app
 
 ## Thank You for Checking Out Our Project!
-Feel free to reach out or open an issue if you encounter any problems or want to contribute. Let's make inventory management better together!
+Feel free to reach out or open an issue if you encounter any problems or want to contribute. Let's make online sales better together!
