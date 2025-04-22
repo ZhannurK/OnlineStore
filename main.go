@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"log"
 	"net/http"
@@ -151,7 +153,16 @@ func init() {
 		logger.WithError(err).Fatal("Failed to ping MongoDB")
 	}
 	logger.Info("Connected to MongoDB")
+
+	prometheus.MustRegister(requestCount)
 }
+
+var requestCount = prometheus.NewCounter(
+	prometheus.CounterOpts{
+		Name: "shoestore_requests_total",
+		Help: "Total number of HTTP requests received",
+	},
+)
 
 func main() {
 
@@ -162,6 +173,8 @@ func main() {
 	r := mux.NewRouter()
 
 	r.Use(rateLimitMiddleware)
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	r.HandleFunc("/shoes", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./store/shoes.html")
