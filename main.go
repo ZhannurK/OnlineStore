@@ -154,7 +154,6 @@ func init() {
 	}
 	logger.Info("Connected to MongoDB")
 
-	prometheus.MustRegister(requestCount)
 }
 
 var requestCount = prometheus.NewCounter(
@@ -174,6 +173,10 @@ func main() {
 
 	r.Use(rateLimitMiddleware)
 
+	prometheus.MustRegister(requestCount)
+
+	requestCount.Inc()
+
 	r.Handle("/metrics", promhttp.Handler())
 
 	r.HandleFunc("/shoes", func(w http.ResponseWriter, r *http.Request) {
@@ -185,11 +188,9 @@ func main() {
 	r.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./store/contact.html")
 	}).Methods(http.MethodGet)
-
 	r.HandleFunc("/support", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./store/support.html")
 	}).Methods(http.MethodGet)
-
 	r.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./store/signup.html")
 	}).Methods(http.MethodGet)
