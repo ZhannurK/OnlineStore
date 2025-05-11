@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"log"
 	"net/http"
@@ -97,10 +99,25 @@ type Transaction struct {
 	UpdatedAt     time.Time          `bson:"updatedAt"     json:"updatedAt"`
 }
 
+var requestCount = prometheus.NewCounter(
+	prometheus.CounterOpts{
+		Name: "shoestore_requests_total",
+		Help: "Total number of HTTP requests received",
+	},
+)
+
 func main() {
 	if err := godotenv.Load("../.env"); err != nil {
 		logger.Warn("No .env file found or error loading it. Proceeding with system env variables.")
 	}
+
+	r := mux.NewRouter()
+
+	prometheus.MustRegister(requestCount)
+
+	requestCount.Inc()
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	logger.SetOutput(os.Stdout)
 	logger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
@@ -110,7 +127,6 @@ func main() {
 	}
 	logger.Info("Connected to MongoDB successfully.")
 
-	r := mux.NewRouter()
 	r.PathPrefix("/public").Handler(http.FileServer(http.Dir("./")))
 	r.HandleFunc("/payment", paymentHandler).Methods(http.MethodPost)
 	r.HandleFunc("/payment/form", paymentFormHandler).Methods(http.MethodGet)
@@ -121,7 +137,7 @@ func main() {
 	}).Methods(http.MethodGet)
 
 	srv := &http.Server{
-		Addr:    ":8081",
+		Addr:    "0.0.0.0:8081",
 		Handler: r,
 	}
 
